@@ -1,4 +1,5 @@
 import {
+  logoutController,
   registrationController,
   signinController,
 } from "controllers/userControllers";
@@ -9,4 +10,6 @@ export const userRouter = Router();
 
 userRouter.post("/register", ctrlWrapper(registrationController));
 
-userRouter.get("/signin", ctrlWrapper(signinController));
+userRouter.post("/signin", ctrlWrapper(signinController));
+
+userRouter.post("/logout", ctrlWrapper(logoutController));

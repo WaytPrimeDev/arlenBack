@@ -24,7 +24,6 @@ const sessionSchema = new Schema<ISession>(
     refreshTokenValidUntil: {
       type: Date,
       required: true,
-      index: true,
     },
     userAgent: String,
     ip: String,

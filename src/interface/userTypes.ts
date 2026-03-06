@@ -11,3 +11,15 @@ export interface UserResponseDto {
   login: string;
   userName: string;
 }
+
+export interface ISessionSetup {
+  refreshToken: string;
+  refreshTokenHash: string;
+  refreshTokenValidUntil: Date;
+}
+
+export interface ISigninService {
+  accessToken: string;
+  refreshToken: string;
+  sessionId: string;
+}

@@ -1,9 +1,16 @@
-import { UserModel } from "db/model/auth/UserModel";
 import createHttpError from "http-errors";
-import bcrypt from "bcrypt";
-import { UserDataDto, UserResponseDto } from "interface/userTypes";
+import bcrypt, { compare } from "bcrypt";
+import jwt from "jsonwebtoken";
+
+import { UserModel } from "db/model/auth/UserModel";
+import {
+  ISigninService,
+  UserDataDto,
+  UserResponseDto,
+} from "interface/userTypes";
 import { env } from "utils/env";
 import { SessionModel } from "db/model/auth/SessionModel";
+import { setupSession } from "utils/setupSession";
 
 export const registrationService = async (
   data: UserDataDto,
@@ -31,6 +38,51 @@ export const registrationService = async (
   };
 };
 
-export const signinServices = async (): Promise<void> => {
-  const session = SessionModel.create;
+export const signinServices = async (
+  login: string,
+  password: string,
+  userAgent: string | undefined,
+  ip: string | undefined,
+): Promise<ISigninService> => {
+  const user = await UserModel.findOne({ login: login });
+  if (!user) {
+    throw createHttpError(403, "Login or password incorrect");
+  }
+  const passwordCompare = await compare(password, user.password);
+  if (!passwordCompare) {
+    throw createHttpError(403, "Login or password incorrect");
+  }
+
+  await SessionModel.deleteOne({
+    userId: user._id,
+    userAgent,
+  });
+
+  const sessionConfig = setupSession();
+  const session = await SessionModel.create({
+    refreshTokenHash: sessionConfig.refreshTokenHash,
+    refreshTokenValidUntil: sessionConfig.refreshTokenValidUntil,
+    userId: user._id,
+    userAgent,
+    ip,
+  });
+
+  const accessToken = jwt.sign(
+    {
+      sub: user._id,
+      sid: session._id.toString(),
+    },
+    env.JWT_SECRET,
+    { expiresIn: "15m" },
+  );
+
+  return {
+    accessToken,
+    refreshToken: sessionConfig.refreshToken,
+    sessionId: session._id.toString(),
+  };
+};
+
+export const logoutServices = async (_id: string) => {
+  await SessionModel.deleteOne({ _id });
 };

@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 
 import { env } from "utils/env";
 import { router } from "routers";
@@ -10,6 +11,7 @@ export const startServer = () => {
   const server = express();
   server.use(cors());
   server.use(express.json());
+  server.use(cookieParser());
   server.use(router);
   server.use(notFoundRoutes);
   server.use(errorHandler);
