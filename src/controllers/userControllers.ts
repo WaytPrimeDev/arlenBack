@@ -47,6 +47,7 @@ export const signinController = async (
 
   res.json({
     message: "login success",
+    acceptToken: session.accessToken,
   });
 };
 

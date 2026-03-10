@@ -1,5 +1,5 @@
+import { UserStatus } from "interface/userTypes";
 import mongoose, { InferSchemaType, Schema } from "mongoose";
-import { USER_TYPES } from "../../../constant/index";
 
 const userSchema = new Schema(
   {
@@ -25,8 +25,8 @@ const userSchema = new Schema(
     },
     type: {
       type: String,
-      enum: USER_TYPES,
-      default: USER_TYPES[0],
+      enum: Object.values(UserStatus),
+      default: UserStatus.USER,
     },
   },
   { timestamps: true },

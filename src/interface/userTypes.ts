@@ -1,9 +1,15 @@
+export enum UserStatus {
+  USER = "User",
+  ADMIN = "Admin",
+  PARTNER = "Partner",
+}
+
 export interface UserDataDto {
   email: string;
   password: string;
   login: string;
   userName: string;
-  type: "User" | "Admin" | "Partner";
+  type: UserStatus;
 }
 
 export interface UserResponseDto {
