@@ -11,6 +11,16 @@ export const addParentKittenService = async (data: ParentDataDto) => {
   return parent;
 };
 
+//<------------------------------------------------------------------------------------------------------>//
+
+export const getKittenService = async (page: number, perPage: number) => {
+  const kittens = await KittenModel.find()
+    .skip((page - 1) * perPage)
+    .limit(perPage);
+
+  return kittens;
+};
+
 export const addKittenService = async (
   data: KittenDataDto,
   photos: Express.Multer.File[],

@@ -1,4 +1,7 @@
-import { addKittenController } from "controllers/catControllers";
+import {
+  addKittenController,
+  getKittenController,
+} from "controllers/catControllers";
 import { Router } from "express";
 import { upload } from "middlewares/multer";
 import { ctrlWrapper } from "utils/ctrlWrapper";
@@ -10,3 +13,5 @@ catRouter.post(
   upload.array("images", 5),
   ctrlWrapper(addKittenController),
 );
+
+catRouter.get("/kitten", ctrlWrapper(getKittenController));
