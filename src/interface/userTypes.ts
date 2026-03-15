@@ -3,6 +3,11 @@ export enum UserStatus {
   ADMIN = "Admin",
   PARTNER = "Partner",
 }
+export type AuthUser = {
+  id: string;
+  email: string;
+  role: string;
+};
 
 export interface UserDataDto {
   email: string;

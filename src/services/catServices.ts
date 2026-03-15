@@ -1,20 +1,29 @@
 import { KittenModel } from "db/model/cats/KittenModel";
 import createHttpError from "http-errors";
-import { KittenDataDto } from "interface/kittenTypes";
+import { KittenDataDto, ParentDataDto } from "interface/kittenTypes";
 import path from "node:path";
 import { uploadToCloudinary } from "utils/uploadToCloudinary";
 import fs from "fs/promises";
+import { ParentModel } from "db/model/cats/ParentModel";
+
+export const addParentKittenService = async (data: ParentDataDto) => {
+  const parent = await ParentModel.create(data);
+  return parent;
+};
 
 export const addKittenService = async (
   data: KittenDataDto,
   photos: Express.Multer.File[],
-) => {
+): Promise<KittenDataDto> => {
   const uploadPromises = photos.map(async (file, index) => {
     const uniqueName = path.parse(file.filename).name;
-    const publicId = `cats/kittens/${uniqueName}`;
 
     try {
-      const url = await uploadToCloudinary(file.path, "cats/kittens", publicId);
+      const url = await uploadToCloudinary(
+        file.path,
+        "cats/kittens",
+        uniqueName,
+      );
 
       const getTransformedUrl = (params: string) =>
         url.replace("/upload/", `/upload/${params}/`);
@@ -42,7 +51,11 @@ export const addKittenService = async (
       images: uploadedImages.map(({ localPath, ...img }) => img),
     });
 
-    return kitten;
+    return {
+      ...kitten.toObject(),
+      userId: kitten.userId.toString(),
+      parentId: kitten.parentId?.toString(),
+    };
   } finally {
     for (const file of photos) {
       fs.unlink(file.path).catch((err) =>
