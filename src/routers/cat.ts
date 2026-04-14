@@ -1,8 +1,10 @@
 import {
   addKittenController,
+  getKittenByIdController,
   getKittenController,
 } from "controllers/catControllers";
 import { Router } from "express";
+import { isValidId } from "middlewares/isValidId";
 import { upload } from "middlewares/multer";
 import { ctrlWrapper } from "utils/ctrlWrapper";
 
@@ -15,3 +17,4 @@ catRouter.post(
 );
 
 catRouter.get("/kitten", ctrlWrapper(getKittenController));
+catRouter.get("/kitten/:id", isValidId, ctrlWrapper(getKittenByIdController));

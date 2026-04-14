@@ -1,6 +1,7 @@
 import {
   addKittenService,
   addParentKittenService,
+  getKittenByIdService,
   getKittenService,
 } from "services/catServices";
 import { Request, Response } from "express";
@@ -19,6 +20,10 @@ export const addKittenController = async (
   res: Response,
 ): Promise<void> => {
   const files = req.files;
+  const parentId = {
+    mom: req.body.momId?.toString() || null,
+    dad: req.body.dadId?.toString() || null,
+  };
   const price = {
     breeding: req.body.breeding,
     pet: req.body.pet,
@@ -28,10 +33,23 @@ export const addKittenController = async (
   if (!files?.length) throw createHttpError(400, "Minimum 1 photo required");
   if (files.length > 5) throw createHttpError(400, "Maximum 5 photos allowed");
 
-  const kitten = await addKittenService({ ...req.body, price }, files);
+  const kitten = await addKittenService(
+    { ...req.body, price, parentId },
+    files,
+  );
 
   res.json({
     message: "kitten was create",
+    data: kitten,
+  });
+};
+
+export const getKittenByIdController = async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+  const kitten = await getKittenByIdService(id);
+
+  res.json({
+    message: "get kitten by id",
     data: kitten,
   });
 };

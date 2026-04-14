@@ -21,6 +21,14 @@ export const getKittenService = async (page: number, perPage: number) => {
   return kittens;
 };
 
+export const getKittenByIdService = async (id: string) => {
+  const kitten = await KittenModel.findById(id).lean();
+  if (!kitten) {
+    throw createHttpError(404, "Kitten not found");
+  }
+  return kitten;
+};
+
 export const addKittenService = async (
   data: KittenDataDto,
   photos: Express.Multer.File[],
@@ -64,7 +72,10 @@ export const addKittenService = async (
     return {
       ...kitten.toObject(),
       userId: kitten.userId.toString(),
-      parentId: kitten.parentId?.toString(),
+      parentId: {
+        mom: kitten.parentId?.mom?.toString() || null,
+        dad: kitten.parentId?.dad?.toString() || null,
+      },
     };
   } finally {
     for (const file of photos) {
