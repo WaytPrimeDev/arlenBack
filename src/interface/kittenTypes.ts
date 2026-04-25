@@ -5,6 +5,11 @@ export enum KittenStatus {
   OUT = "out",
 }
 
+type Parent = {
+  mom: string | null;
+  dad: string | null;
+};
+
 export enum Sex {
   MALE = "male",
   FEMALE = "female",
@@ -30,7 +35,7 @@ export interface KittenDataDto {
   userId: string;
   status: KittenStatus;
   breed: string;
-  parentId?: string | null;
+  parentId: Parent;
   sex: Sex;
   price: Price;
 

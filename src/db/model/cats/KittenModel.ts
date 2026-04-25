@@ -1,5 +1,13 @@
-import { Sex, KittenStatus } from "interface/kittenTypes";
+import { Sex, KittenStatus } from "../../../interface/kittenTypes";
 import { model, Schema } from "mongoose";
+
+const parentSchema = new Schema(
+  {
+    mom: { type: Schema.Types.ObjectId, ref: "Parent", default: null },
+    dad: { type: Schema.Types.ObjectId, ref: "Parent", default: null },
+  },
+  { _id: false },
+);
 
 const imageSchema = new Schema(
   {
@@ -18,20 +26,6 @@ const priceSchema = new Schema(
   { _id: false },
 );
 
-const parentSchema = new Schema(
-  {
-    dad: {
-      type: Schema.Types.ObjectId,
-      ref: "Parent",
-    },
-    mom: {
-      type: Schema.Types.ObjectId,
-      ref: "Parent",
-    },
-  },
-  { _id: false },
-);
-
 const kittenSchema = new Schema(
   {
     nameUa: { type: String, required: true },
@@ -45,7 +39,8 @@ const kittenSchema = new Schema(
       default: KittenStatus.OFFLINE,
     },
     breed: { type: String, required: true },
-    parentId: { type: parentSchema },
+
+    parentId: parentSchema,
     sex: { type: String, enum: Object.values(Sex), required: true },
 
     price: { type: priceSchema, required: true },
