@@ -1,4 +1,5 @@
 export enum KittenStatus {
+  OFFLINE = "offline",
   ACTIVE = "active",
   BOOKED = "booked",
   OUT = "out",

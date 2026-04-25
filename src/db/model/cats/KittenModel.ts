@@ -18,6 +18,20 @@ const priceSchema = new Schema(
   { _id: false },
 );
 
+const parentSchema = new Schema(
+  {
+    dad: {
+      type: Schema.Types.ObjectId,
+      ref: "Parent",
+    },
+    mom: {
+      type: Schema.Types.ObjectId,
+      ref: "Parent",
+    },
+  },
+  { _id: false },
+);
+
 const kittenSchema = new Schema(
   {
     nameUa: { type: String, required: true },
@@ -28,10 +42,10 @@ const kittenSchema = new Schema(
     status: {
       type: String,
       enum: Object.values(KittenStatus),
-      default: KittenStatus.ACTIVE,
+      default: KittenStatus.OFFLINE,
     },
     breed: { type: String, required: true },
-    parentId: { type: Schema.Types.ObjectId, ref: "Parent", default: null },
+    parentId: { type: parentSchema },
     sex: { type: String, enum: Object.values(Sex), required: true },
 
     price: { type: priceSchema, required: true },

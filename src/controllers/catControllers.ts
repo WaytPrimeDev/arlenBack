@@ -11,7 +11,11 @@ export const addParentKittenController = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const parent = await addParentKittenService;
+  const parent = await addParentKittenService(req.body);
+  res.json({
+    status: 200,
+    data: parent,
+  });
 };
 
 export const addKittenController = async (
