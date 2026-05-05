@@ -1,4 +1,4 @@
-import { UserStatus } from "interface/userTypes";
+import { UserStatus } from "../../../interface/userTypes";
 import mongoose, { InferSchemaType, Schema } from "mongoose";
 
 const userSchema = new Schema(

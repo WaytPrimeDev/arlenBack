@@ -8,12 +8,12 @@ import {
   getParentController,
   updateKittenController,
   updateParentController,
-} from "controllers/catControllers";
+} from "../controllers/catControllers";
 import { Router } from "express";
-import { auth } from "middlewares/auth";
-import { isValidId } from "middlewares/isValidId";
-import { upload } from "middlewares/multer";
-import { ctrlWrapper } from "utils/ctrlWrapper";
+import { auth } from "../middlewares/auth";
+import { isValidId } from "../middlewares/isValidId";
+import { upload } from "../middlewares/multer";
+import { ctrlWrapper } from "../utils/ctrlWrapper";
 
 export const catRouter = Router();
 

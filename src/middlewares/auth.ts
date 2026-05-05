@@ -1,8 +1,8 @@
 import createHttpError from "http-errors";
 import { Request, Response, NextFunction } from "express";
-import { verifyAccessToken } from "utils/verifyAccessToken";
-import { SessionModel } from "db/model/auth/SessionModel";
-import { UserModel } from "db/model/auth/UserModel";
+import { verifyAccessToken } from "../utils/verifyAccessToken";
+import { SessionModel } from "../db/model/auth/SessionModel";
+import { UserModel } from "../db/model/auth/UserModel";
 
 export const auth = async (
   req: Request,

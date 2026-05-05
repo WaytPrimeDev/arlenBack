@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import { MONTH } from "constant";
-import { ISessionSetup } from "interface/userTypes";
+import { MONTH } from "../constant";
+import { ISessionSetup } from "../interface/userTypes";
 
 export const setupSession = (): ISessionSetup => {
   const refreshToken = crypto.randomBytes(64).toString("hex");

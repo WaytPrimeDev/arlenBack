@@ -3,7 +3,7 @@ import {
   deleteFamilyService,
   getFamiliesServices,
   updateFamilyService,
-} from "services/familyServices";
+} from "../services/familyServices";
 import { Request, Response } from "express";
 import createHttpError from "http-errors";
 

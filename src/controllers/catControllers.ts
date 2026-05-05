@@ -1,3 +1,4 @@
+import { parsePaginationParams } from "../utils/parseParams/pagePaginationParams";
 import {
   addKittenService,
   addParentKittenService,
@@ -8,10 +9,9 @@ import {
   getParentService,
   updateKittenService,
   updateParentService,
-} from "services/catServices";
+} from "../services/catServices";
 import { Request, Response } from "express";
 import createHttpError from "http-errors";
-import { parsePaginationParams } from "utils/parseParams/pagePaginationParams";
 
 export const getParentController = async (
   _req: Request,

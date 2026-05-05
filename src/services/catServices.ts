@@ -1,13 +1,13 @@
-import { KittenModel } from "db/model/cats/KittenModel";
+import { KittenModel } from "../db/model/cats/KittenModel";
 import createHttpError from "http-errors";
-import { KittenDataDto, ParentDataDto } from "interface/kittenTypes";
+import { KittenDataDto, ParentDataDto } from "../interface/kittenTypes";
 import path from "node:path";
 import {
   uploadToCloudinary,
   deleteMultipleFromCloudinary,
-} from "utils/uploadToCloudinary";
+} from "../utils/uploadToCloudinary";
 import fs from "fs/promises";
-import { ParentModel } from "db/model/cats/ParentModel";
+import { ParentModel } from "../db/model/cats/ParentModel";
 
 export const getParentService = async () => {
   const parents = await ParentModel.find();

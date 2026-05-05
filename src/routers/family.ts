@@ -3,11 +3,11 @@ import {
   deleteFamilyController,
   getFamilyController,
   updateFamilyController,
-} from "controllers/familyControllers";
+} from "../controllers/familyControllers";
 import { Router } from "express";
-import { auth } from "middlewares/auth";
-import { isValidId } from "middlewares/isValidId";
-import { ctrlWrapper } from "utils/ctrlWrapper";
+import { auth } from "../middlewares/auth";
+import { isValidId } from "../middlewares/isValidId";
+import { ctrlWrapper } from "../utils/ctrlWrapper";
 
 export const familyRouter = Router();
 

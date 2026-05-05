@@ -1,4 +1,4 @@
-import { Sex } from "interface/kittenTypes";
+import { Sex } from "../../../interface/kittenTypes";
 import { model, Schema } from "mongoose";
 
 const imageSchema = new Schema(

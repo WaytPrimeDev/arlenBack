@@ -2,9 +2,9 @@ import {
   logoutController,
   registrationController,
   signinController,
-} from "controllers/userControllers";
+} from "../controllers/userControllers";
 import { Router } from "express";
-import { ctrlWrapper } from "utils/ctrlWrapper";
+import { ctrlWrapper } from "../utils/ctrlWrapper";
 
 export const userRouter = Router();
 

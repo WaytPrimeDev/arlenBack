@@ -2,10 +2,10 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-import { env } from "utils/env";
-import { router } from "routers";
-import { notFoundRoutes } from "middlewares/notFoundRoutes";
-import { errorHandler } from "middlewares/errorHandler";
+import { env } from "./utils/env";
+import { router } from "./routers";
+import { notFoundRoutes } from "./middlewares/notFoundRoutes";
+import { errorHandler } from "./middlewares/errorHandler";
 
 export const startServer = () => {
   const server = express();

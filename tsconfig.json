@@ -1,36 +1,38 @@
 {
   "compilerOptions": {
-  
-    "target": "ES2022",        
-    "lib": ["ES2023"],          
-    "module": "Node16",         
+    /* Базовые настройки окружения */
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "Node16",
     "moduleResolution": "Node16",
     
-
+    /* Структура проекта */
     "outDir": "./dist",
     "rootDir": "./src",
-    "sourceMap": true,          
+    "sourceMap": true,
 
-    
+    /* Совместимость и системные настройки */
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
 
-  
+    /* Строгие проверки (Strict Mode) */
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
-    "noUnusedLocals": true,     
+    "noUnusedLocals": true,
     "noUnusedParameters": true,
 
- 
+    /* Поддержка декораторов (NestJS, TypeORM и др.) */
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
 
+    /* Пути и алиасы */
+    
     "paths": {
-      "*": ["./src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"],

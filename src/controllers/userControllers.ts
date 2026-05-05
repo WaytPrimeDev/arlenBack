@@ -2,10 +2,10 @@ import {
   logoutServices,
   registrationService,
   signinServices,
-} from "services/userServices";
+} from "../services/userServices";
 
 import { Response, Request } from "express";
-import { MONTH } from "constant";
+import { MONTH } from "../constant";
 
 export const registrationController = async (
   req: Request,

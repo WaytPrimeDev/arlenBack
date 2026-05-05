@@ -1,6 +1,6 @@
-import { FamilyModel } from "db/model/family/FamilyModel";
-import { KittenModel } from "db/model/cats/KittenModel";
-import { ParentModel } from "db/model/cats/ParentModel";
+import { FamilyModel } from "../db/model/family/FamilyModel";
+import { KittenModel } from "../db/model/cats/KittenModel";
+import { ParentModel } from "../db/model/cats/ParentModel";
 import createHttpError from "http-errors";
 
 export interface CreateFamilyData {
@@ -144,7 +144,8 @@ export const updateFamilyService = async (
   // 2. Подготавливаем данные для обновления (обновляем только переданные поля)
   const updateData: any = {};
   if (data.name) updateData.name = data.name;
-  if (data.displayOrder !== undefined) updateData.displayOrder = data.displayOrder;
+  if (data.displayOrder !== undefined)
+    updateData.displayOrder = data.displayOrder;
 
   // 3. СИНХРОНИЗАЦИЯ РОДИТЕЛЕЙ
   // Если передали новых родителей, нужно синхронизировать связи

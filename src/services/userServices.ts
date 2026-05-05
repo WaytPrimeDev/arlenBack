@@ -2,15 +2,15 @@ import createHttpError from "http-errors";
 import bcrypt, { compare } from "bcrypt";
 import jwt from "jsonwebtoken";
 
-import { UserModel } from "db/model/auth/UserModel";
+import { UserModel } from "../db/model/auth/UserModel";
 import {
   ISigninService,
   UserDataDto,
   UserResponseDto,
-} from "interface/userTypes";
-import { env } from "utils/env";
-import { SessionModel } from "db/model/auth/SessionModel";
-import { setupSession } from "utils/setupSession";
+} from "../interface/userTypes";
+import { env } from "../utils/env";
+import { SessionModel } from "../db/model/auth/SessionModel";
+import { setupSession } from "../utils/setupSession";
 
 export const registrationService = async (
   data: UserDataDto,
