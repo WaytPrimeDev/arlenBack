@@ -9,7 +9,12 @@ import { errorHandler } from "./middlewares/errorHandler";
 
 export const startServer = () => {
   const server = express();
-  server.use(cors());
+  server.use(
+    cors({
+      origin: true,
+      credentials: true,
+    }),
+  );
   server.use(express.json());
   server.use(cookieParser());
   server.use(router);
