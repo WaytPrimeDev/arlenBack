@@ -4,7 +4,11 @@ import { verifyAccessToken } from "utils/verifyAccessToken";
 import { SessionModel } from "db/model/auth/SessionModel";
 import { UserModel } from "db/model/auth/UserModel";
 
-export const auth = async (req: Request, res: Response, next: NextFunction) => {
+export const auth = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+) => {
   const authHeader = req.get("Authorization");
   if (!authHeader) {
     throw createHttpError(401, "Please provide Authorization header");

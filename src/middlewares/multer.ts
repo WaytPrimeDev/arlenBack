@@ -14,11 +14,11 @@ const allowedMimeTypes = [
 const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req, _file, cb) => {
     cb(null, TEMP_UPLOAD_DIR);
   },
 
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     const unique = crypto.randomUUID();
     const ext = path.extname(file.originalname);
     cb(null, `${unique}${ext}`);
@@ -32,7 +32,7 @@ export const upload = multer({
     fileSize: 10 * 1024 * 1024,
   },
 
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
 
     const isMimeAllowed = allowedMimeTypes.includes(file.mimetype);

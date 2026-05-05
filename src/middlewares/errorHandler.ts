@@ -7,9 +7,9 @@ interface HttpError extends Error {
 
 export const errorHandler = (
   err: HttpError | unknown,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction,
+  _next: NextFunction,
 ) => {
   const error = err as HttpError;
 

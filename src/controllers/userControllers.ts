@@ -6,7 +6,6 @@ import {
 
 import { Response, Request } from "express";
 import { MONTH } from "constant";
-import { UserModel } from "db/model/auth/UserModel";
 
 export const registrationController = async (
   req: Request,
