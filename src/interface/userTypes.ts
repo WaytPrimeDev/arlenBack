@@ -30,6 +30,11 @@ export interface ISessionSetup {
 }
 
 export interface ISigninService {
+  user: {
+    name: string;
+    email: string;
+    id: string;
+  };
   accessToken: string;
   refreshToken: string;
   sessionId: string;

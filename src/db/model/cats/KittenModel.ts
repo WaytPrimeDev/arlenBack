@@ -32,7 +32,7 @@ const kittenSchema = new Schema(
     nameEn: { type: String, required: true },
     color: { type: String, required: true },
     birthDay: { type: Date, required: true },
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    // userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     status: {
       type: String,
       enum: Object.values(KittenStatus),
@@ -41,6 +41,7 @@ const kittenSchema = new Schema(
     breed: { type: String, required: true },
 
     parentId: parentSchema,
+    familyId: { type: Schema.Types.ObjectId, ref: "Family", default: null },
     sex: { type: String, enum: Object.values(Sex), required: true },
 
     price: { type: priceSchema, required: true },

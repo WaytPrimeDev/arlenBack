@@ -6,6 +6,7 @@ import {
 
 import { Response, Request } from "express";
 import { MONTH } from "constant";
+import { UserModel } from "db/model/auth/UserModel";
 
 export const registrationController = async (
   req: Request,
@@ -47,7 +48,8 @@ export const signinController = async (
 
   res.json({
     message: "login success",
-    acceptToken: session.accessToken,
+    user: session.user,
+    accessToken: session.accessToken,
   });
 };
 

@@ -32,7 +32,7 @@ export interface KittenDataDto {
   nameEn: string;
   color: string;
   birthDay: Date;
-  userId: string;
+  // userId: string;
   status: KittenStatus;
   breed: string;
   parentId: Parent;

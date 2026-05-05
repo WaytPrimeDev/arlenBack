@@ -73,10 +73,16 @@ export const signinServices = async (
       sid: session._id.toString(),
     },
     env.JWT_SECRET,
-    { expiresIn: "15m" },
+    { expiresIn: "1000m" },
   );
 
   return {
+    user: {
+      name: user.userName,
+      email: user.email,
+      id: user._id.toString(),
+    },
+
     accessToken,
     refreshToken: sessionConfig.refreshToken,
     sessionId: session._id.toString(),
