@@ -62,8 +62,8 @@ export const extractPublicIdFromUrl = (fullUrl: string): string => {
  * Удаляет одно изображение из Cloudinary
  */
 export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    cloudinary.v2.uploader.destroy(publicId, (error, result) => {
+  return new Promise((resolve, _reject) => {
+    cloudinary.v2.uploader.destroy(publicId, (error, _result) => {
       if (error) {
         console.warn(
           `Failed to delete image ${publicId} from Cloudinary:`,

@@ -4,7 +4,7 @@ import { isValidObjectId } from "mongoose";
 
 export const isValidId = (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction,
 ): void => {
   const { id } = req.params;
