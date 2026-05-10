@@ -99,7 +99,7 @@ export const addParentKittenService = async (
 
 //<------------------------------------------------------------------------------------------------------>//
 
-export const getKittenService = async (page: number, perPage: number) => {
+export const getKittensService = async (page: number, perPage: number) => {
   const kittens = await KittenModel.find()
     .skip((page - 1) * perPage)
     .limit(perPage);
@@ -113,6 +113,14 @@ export const getKittenByIdService = async (id: string) => {
     throw createHttpError(404, "Kitten not found");
   }
   return kitten;
+};
+
+export const getParentByIdService = async (id: string) => {
+  const parent = await ParentModel.findById(id).lean();
+  if (!parent) {
+    throw createHttpError(404, "Parent not found");
+  }
+  return parent;
 };
 
 export const addKittenService = async (

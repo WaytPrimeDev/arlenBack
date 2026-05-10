@@ -3,12 +3,13 @@ import {
   addKittenService,
   addParentKittenService,
   getKittenByIdService,
-  getKittenService,
+  getKittensService,
   deleteParentService,
   deleteKittenService,
   getParentService,
   updateKittenService,
   updateParentService,
+  getParentByIdService,
 } from "../services/catServices";
 import { Request, Response } from "express";
 import createHttpError from "http-errors";
@@ -84,13 +85,22 @@ export const getKittenByIdController = async (req: Request, res: Response) => {
   });
 };
 
-export const getKittenController = async (req: Request, res: Response) => {
+export const getParentByIdController = async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+  const parent = await getParentByIdService(id);
+  res.json({
+    message: "get kitten by id",
+    data: parent,
+  });
+};
+
+export const getKittensController = async (req: Request, res: Response) => {
   const { page = 1, perPage = 20 } = parsePaginationParams(
     req.query.page as string,
     req.query.perPage as string,
   );
 
-  const kittens = await getKittenService(page, perPage);
+  const kittens = await getKittensService(page, perPage);
 
   res.json({
     message: "get kitten",

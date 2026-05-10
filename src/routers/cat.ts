@@ -2,12 +2,13 @@ import {
   addKittenController,
   addParentKittenController,
   getKittenByIdController,
-  getKittenController,
+  getKittensController,
   deleteParentController,
   deleteKittenController,
   getParentController,
   updateKittenController,
   updateParentController,
+  getParentByIdController,
 } from "../controllers/catControllers";
 import { Router } from "express";
 import { auth } from "../middlewares/auth";
@@ -24,7 +25,7 @@ catRouter.post(
   ctrlWrapper(addKittenController),
 );
 
-catRouter.get("/kittens", ctrlWrapper(getKittenController));
+catRouter.get("/kittens", ctrlWrapper(getKittensController));
 catRouter.get(
   "/kitten/:id",
 
@@ -45,6 +46,7 @@ catRouter.post(
   ctrlWrapper(addParentKittenController),
 );
 catRouter.get("/parents", ctrlWrapper(getParentController));
+catRouter.get("/parent/:id", isValidId, ctrlWrapper(getParentByIdController));
 catRouter.delete(
   "/parent/:id",
   auth,
