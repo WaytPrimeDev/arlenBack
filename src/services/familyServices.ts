@@ -10,6 +10,7 @@ export interface CreateFamilyData {
     dad: string;
   };
   kittens: string[];
+  displayOrder: number;
 }
 
 //<------------------------------------------------------------------------------------------------------>//
@@ -17,7 +18,9 @@ export interface CreateFamilyData {
 //<------------------------------------------------------------------------------------------------------>//
 
 export const createFamilyService = async (data: CreateFamilyData) => {
-  // 1. Создаем документ семьи
+  const lastFamily = await FamilyModel.findOne().sort({ displayOrder: -1 });
+
+  const nextOrder = lastFamily ? lastFamily.displayOrder + 1 : 0;
   const family = await FamilyModel.create({
     name: data.name,
     parents: {
@@ -25,6 +28,7 @@ export const createFamilyService = async (data: CreateFamilyData) => {
       dad: data.parents.dad,
     },
     kittens: data.kittens,
+    displayOrder: nextOrder,
   });
 
   // 2. Добавляем ID котят в массивы Kittens у мамы и папы (используем $addToSet для избежания дубликатов)
@@ -75,7 +79,7 @@ export const createFamilyService = async (data: CreateFamilyData) => {
 };
 
 export const getFamiliesServices = async () => {
-  const families = await FamilyModel.find();
+  const families = await FamilyModel.find().sort({ displayOrder: 1 });
   return families;
 };
 
@@ -265,4 +269,19 @@ export const updateFamilyService = async (
     },
     kittens: updatedFamily?.kittens?.map((id: any) => id.toString()) || [],
   };
+};
+
+export const reorderFamiliesService = async (orderedIds: string[]) => {
+  console.log(orderedIds);
+
+  const bulkOperations = orderedIds.map((id, index) => ({
+    updateOne: {
+      filter: { _id: id },
+      update: { $set: { displayOrder: index } },
+    },
+  }));
+
+  // Выполняем все обновления за один запрос
+  await FamilyModel.bulkWrite(bulkOperations);
+  return;
 };

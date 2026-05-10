@@ -2,6 +2,7 @@ import {
   createFamilyService,
   deleteFamilyService,
   getFamiliesServices,
+  reorderFamiliesService,
   updateFamilyService,
 } from "../services/familyServices";
 import { Request, Response } from "express";
@@ -15,12 +16,7 @@ export const createFamilyController = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { name, parents, kittens } = req.body;
-
-  // Валидация входных данных
-  // if (!name || kittens.length < 1) {
-  //   throw createHttpError(400, "Name and kittens are required");
-  // }
+  const { name, parents, kittens, displayOrder = 0 } = req.body;
 
   if (!Array.isArray(kittens) || kittens.length === 0) {
     throw createHttpError(400, "Kittens must be a non-empty array");
@@ -33,6 +29,7 @@ export const createFamilyController = async (
       dad: parents?.dad || null,
     },
     kittens,
+    displayOrder,
   });
 
   res.status(201).json({
@@ -110,4 +107,25 @@ export const updateFamilyController = async (
     message: "Family updated successfully",
     data: updatedFamily,
   });
+};
+
+export const reorderFamiliesController = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { orderedIds } = req.body;
+
+    if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+      throw createHttpError(400, "Uncorect data format");
+    }
+    console.log(orderedIds);
+
+    await reorderFamiliesService(orderedIds);
+
+    res.status(200).json({ message: "Order was update" });
+  } catch (error) {
+    console.error("Ошибка при обновлении порядка:", error);
+    throw createHttpError(500, "server eror");
+  }
 };

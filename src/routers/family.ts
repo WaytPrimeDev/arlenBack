@@ -2,6 +2,7 @@ import {
   createFamilyController,
   deleteFamilyController,
   getFamilyController,
+  reorderFamiliesController,
   updateFamilyController,
 } from "../controllers/familyControllers";
 import { Router } from "express";
@@ -11,11 +12,9 @@ import { ctrlWrapper } from "../utils/ctrlWrapper";
 
 export const familyRouter = Router();
 
-
 familyRouter.post("/", auth, ctrlWrapper(createFamilyController));
 
 familyRouter.get("/", ctrlWrapper(getFamilyController));
-
 
 familyRouter.delete(
   "/:id",
@@ -24,10 +23,7 @@ familyRouter.delete(
   ctrlWrapper(deleteFamilyController),
 );
 
-//<------------------------------------------------------------------------------------------------------>//
-// ОБНОВЛЕНИЕ СЕМЬИ (Family)
-//<------------------------------------------------------------------------------------------------------>//
-
+familyRouter.patch("/reorder", auth, ctrlWrapper(reorderFamiliesController));
 familyRouter.patch(
   "/:id",
   auth,

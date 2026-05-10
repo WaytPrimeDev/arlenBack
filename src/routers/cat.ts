@@ -27,7 +27,7 @@ catRouter.post(
 catRouter.get("/kittens", ctrlWrapper(getKittenController));
 catRouter.get(
   "/kitten/:id",
-  auth,
+
   isValidId,
   ctrlWrapper(getKittenByIdController),
 );
@@ -44,17 +44,13 @@ catRouter.post(
   upload.array("images", 5),
   ctrlWrapper(addParentKittenController),
 );
-catRouter.get("/parents", auth, ctrlWrapper(getParentController));
+catRouter.get("/parents", ctrlWrapper(getParentController));
 catRouter.delete(
   "/parent/:id",
   auth,
   isValidId,
   ctrlWrapper(deleteParentController),
 );
-
-//<--------------------------------------------------------------------------------------------------->//
-// ОБНОВЛЕНИЕ КОТЯТ И РОДИТЕЛЕЙ
-//<--------------------------------------------------------------------------------------------------->//
 
 catRouter.patch(
   "/kitten/:id",

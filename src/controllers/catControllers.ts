@@ -172,41 +172,20 @@ export const updateKittenController = async (
 ): Promise<void> => {
   const { id } = req.params as { id: string };
   const files = (req.files as Express.Multer.File[]) || [];
+  const { retainedImages } = req.body;
 
-  // Валидация: максимум 5 фото в сумме (старые + новые)
-  if (files.length > 5) {
+  if (JSON.parse(retainedImages).length + files.length > 5) {
     throw createHttpError(
       400,
       "Maximum 5 photos allowed (including retained images)",
     );
   }
 
-  // Парсим price, если он приходит как строки
-  let price = req.body.price;
-  if (price && typeof price === "string") {
-    try {
-      price = JSON.parse(price);
-    } catch {
-      // Если не JSON, оставляем как есть
-    }
-  }
-
-  // Парсим parentId, если он приходит как строки
-  let parentId = req.body.parentId;
-  if (parentId && typeof parentId === "string") {
-    try {
-      parentId = JSON.parse(parentId);
-    } catch {
-      // Если не JSON, оставляем как есть
-    }
-  }
-
   const updatedKitten = await updateKittenService(
     id,
     {
       ...req.body,
-      price,
-      parentId,
+      ...JSON.parse(retainedImages),
     },
     files,
   );

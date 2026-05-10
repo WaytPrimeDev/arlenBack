@@ -249,14 +249,10 @@ interface UpdateKittenData {
   status?: string;
   breed?: string;
   sex?: string;
-  price?: {
-    breeding?: string;
-    pet?: string;
-  };
-  parentId?: {
-    mom?: string | null;
-    dad?: string | null;
-  };
+
+  breeding?: string;
+  pet?: string;
+
   retainedImages?: string | string[]; // URL или ID фото, которые нужно оставить
 }
 
@@ -296,7 +292,7 @@ export const updateKittenService = async (
   // 5. Загружаем новые фото, если они есть
   let newUploadedImages: any[] = [];
   if (newPhotos.length > 0) {
-    const uploadPromises = newPhotos.map(async (file) => {
+    const uploadPromises = newPhotos.map(async (file, index) => {
       const uniqueName = path.parse(file.filename).name;
       try {
         const url = await uploadToCloudinary(
@@ -312,7 +308,7 @@ export const updateKittenService = async (
           full: url,
           thumbnail: getTransformedUrl("w_200,h_200,c_fill"),
           mobile: getTransformedUrl("w_400,h_400,c_fill"),
-          isMain: false, // Новые фото не помечаем как главное
+          isMain: index === 0, // Новые фото не помечаем как главное
         };
       } catch (err) {
         throw createHttpError(
@@ -343,7 +339,11 @@ export const updateKittenService = async (
   // - Добавляем новые загруженные фото
   const retainedOldImages =
     kitten.images?.filter((img) => retainedImageUrls.includes(img.full)) || [];
+  console.log(retainedImageUrls);
+
   const finalImages = [...retainedOldImages, ...newUploadedImages];
+
+  console.log(finalImages);
 
   // Убедимся, что у нас есть хотя бы одно фото
   if (finalImages.length === 0) {
@@ -365,27 +365,11 @@ export const updateKittenService = async (
   if (data.sex) updateData.sex = data.sex;
 
   // Обновляем цены только если переданы
-  if (data.price) {
+  if (data.breeding || data.pet) {
     updateData.price = {
       breeding:
-        data.price.breeding !== undefined
-          ? data.price.breeding
-          : kitten.price?.breeding,
-      pet: data.price.pet !== undefined ? data.price.pet : kitten.price?.pet,
-    };
-  }
-
-  // Обновляем родителей только если переданы
-  if (data.parentId) {
-    updateData.parentId = {
-      mom:
-        data.parentId.mom !== undefined
-          ? data.parentId.mom
-          : kitten.parentId?.mom,
-      dad:
-        data.parentId.dad !== undefined
-          ? data.parentId.dad
-          : kitten.parentId?.dad,
+        data.breeding !== undefined ? data.breeding : kitten.price?.breeding,
+      pet: data.pet !== undefined ? data.pet : kitten.price?.pet,
     };
   }
 
