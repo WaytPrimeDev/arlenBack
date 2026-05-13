@@ -16,7 +16,7 @@ export const createFamilyController = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { name, parents, kittens, displayOrder = 0 } = req.body;
+  const { name, mom, dad, kittens, displayOrder = 0, breed } = req.body;
 
   if (!Array.isArray(kittens) || kittens.length === 0) {
     throw createHttpError(400, "Kittens must be a non-empty array");
@@ -25,11 +25,12 @@ export const createFamilyController = async (
   const family = await createFamilyService({
     name,
     parents: {
-      mom: parents?.mom || null,
-      dad: parents?.dad || null,
+      mom: mom || null,
+      dad: dad || null,
     },
     kittens,
     displayOrder,
+    breed,
   });
 
   res.status(201).json({
@@ -119,7 +120,6 @@ export const reorderFamiliesController = async (
     if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
       throw createHttpError(400, "Uncorect data format");
     }
-    console.log(orderedIds);
 
     await reorderFamiliesService(orderedIds);
 

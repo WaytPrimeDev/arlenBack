@@ -37,6 +37,7 @@ const familySchema = new Schema(
       default: 0,
       description: "Порядок отображения семьи в UI",
     },
+    breed: { type: String, required: true },
   },
   {
     timestamps: true,

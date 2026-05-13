@@ -1,13 +1,15 @@
-import { KittenModel } from "../db/model/cats/KittenModel";
 import createHttpError from "http-errors";
-import { KittenDataDto, ParentDataDto } from "../interface/kittenTypes";
 import path from "node:path";
+import fs from "fs/promises";
+
 import {
   uploadToCloudinary,
   deleteMultipleFromCloudinary,
 } from "../utils/uploadToCloudinary";
-import fs from "fs/promises";
+import { KittenDataDto, ParentDataDto } from "../interface/kittenTypes";
+import { KittenModel } from "../db/model/cats/KittenModel";
 import { ParentModel } from "../db/model/cats/ParentModel";
+import { FamilyModel } from "../db/model/family/FamilyModel";
 
 export const getParentService = async () => {
   const parents = await ParentModel.find();
@@ -85,9 +87,6 @@ export const addParentKittenService = async (
       ...parent.toObject(),
     };
   } catch (error) {
-    // ВАЖНО: Если БД упала (например, ошибка уникальности), картинки уже в Cloudinary.
-    // В идеальном мире здесь нужно вызвать сервис удаления картинок из Cloudinary по их URL/Public ID,
-    // чтобы не плодить мусор на сервере.
     console.error(
       "Database save failed. Orphaned images might exist in Cloudinary",
       error,
@@ -193,15 +192,38 @@ export const deleteParentService = async (parentId: string) => {
   // 2. Извлекаем все URL изображений родителя
   const imageUrls = parent.images?.map((img) => img.full) || [];
 
-  // 3. Удаляем изображения из Cloudinary параллельно
+  // 3. Удаляем изображения из Cloudinary
   if (imageUrls.length > 0) {
     await deleteMultipleFromCloudinary(imageUrls);
   }
 
-  // 4. Удаляем документ родителя из БД
+  // 4. Отвязываем родителя от КОТЯТ (в KittenModel.parentId)
+  await KittenModel.updateMany(
+    { "parentId.mom": parentId },
+    { $set: { "parentId.mom": null } },
+  );
+  await KittenModel.updateMany(
+    { "parentId.dad": parentId },
+    { $set: { "parentId.dad": null } },
+  );
+
+  // 5. Отвязываем родителя от СЕМЕЙ (в FamilyModel.parents)
+  await FamilyModel.updateMany(
+    { "parents.mom": parentId },
+    { $set: { "parents.mom": null } },
+  );
+  await FamilyModel.updateMany(
+    { "parents.dad": parentId },
+    { $set: { "parents.dad": null } },
+  );
+
+  // 6. Удаляем сам документ родителя
   await ParentModel.findByIdAndDelete(parentId);
 
-  return { message: "Parent successfully deleted" };
+  return {
+    message:
+      "Parent successfully deleted and unlinked from kittens and families",
+  };
 };
 
 //<------------------------------------------------------------------------------------------------------>//
@@ -218,31 +240,31 @@ export const deleteKittenService = async (kittenId: string) => {
   // 2. Извлекаем все URL изображений котенка
   const imageUrls = kitten.images?.map((img) => img.full) || [];
 
-  // 3. Удаляем изображения из Cloudinary параллельно
+  // 3. Удаляем изображения из Cloudinary
   if (imageUrls.length > 0) {
     await deleteMultipleFromCloudinary(imageUrls);
   }
 
-  // 4. Если у котенка есть родители, удаляем ID котенка из массива Kittens родителя
-  // Используем $pull оператор для удаления ID из массива
-  if (kitten.parentId?.mom) {
-    await ParentModel.updateOne(
-      { _id: kitten.parentId.mom },
-      { $pull: { Kittens: kittenId } },
-    );
-  }
+  // 4. Удаляем ID котенка из массива Kittens у всех РОДИТЕЛЕЙ
+  // Mongoose сам найдет документы, где в массиве Kittens есть kittenId
+  await ParentModel.updateMany(
+    { Kittens: kittenId },
+    { $pull: { Kittens: kittenId } },
+  );
 
-  if (kitten.parentId?.dad) {
-    await ParentModel.updateOne(
-      { _id: kitten.parentId.dad },
-      { $pull: { Kittens: kittenId } },
-    );
-  }
+  // 5. Удаляем ID котенка из массива kittens у всех СЕМЕЙ
+  await FamilyModel.updateMany(
+    { kittens: kittenId },
+    { $pull: { kittens: kittenId } },
+  );
 
-  // 5. Удаляем документ котенка из БД
+  // 6. Удаляем сам документ котенка
   await KittenModel.findByIdAndDelete(kittenId);
 
-  return { message: "Kitten successfully deleted" };
+  return {
+    message:
+      "Kitten successfully deleted and unlinked from parents and families",
+  };
 };
 
 //<------------------------------------------------------------------------------------------------------>//
@@ -347,11 +369,8 @@ export const updateKittenService = async (
   // - Добавляем новые загруженные фото
   const retainedOldImages =
     kitten.images?.filter((img) => retainedImageUrls.includes(img.full)) || [];
-  console.log(retainedImageUrls);
 
   const finalImages = [...retainedOldImages, ...newUploadedImages];
-
-  console.log(finalImages);
 
   // Убедимся, что у нас есть хотя бы одно фото
   if (finalImages.length === 0) {

@@ -4,6 +4,7 @@ import { ParentModel } from "../db/model/cats/ParentModel";
 import createHttpError from "http-errors";
 
 export interface CreateFamilyData {
+  breed: string;
   name: string;
   parents: {
     mom: string;
@@ -29,6 +30,7 @@ export const createFamilyService = async (data: CreateFamilyData) => {
     },
     kittens: data.kittens,
     displayOrder: nextOrder,
+    breed: data.breed,
   });
 
   // 2. Добавляем ID котят в массивы Kittens у мамы и папы (используем $addToSet для избежания дубликатов)
@@ -93,29 +95,40 @@ export const deleteFamilyService = async (familyId: string) => {
   if (!family) {
     throw createHttpError(404, "Family not found");
   }
+
   const { kittens, parents } = family;
-  // 2. Опционально: очищаем ссылки на семью у котят
+
+  // 2. Очищаем ссылки на семью у котят (и, при необходимости, на родителей)
   await KittenModel.updateMany(
     { familyId: familyId },
-    { $set: { familyId: null } },
+    {
+      $set: {
+        familyId: null,
+        // Если при удалении семьи котята полностью теряют связь с родителями,
+        // нужно также обнулить эти поля. Иначе раскомментировать не нужно.
+        "parentId.mom": null,
+        "parentId.dad": null,
+      },
+    },
   );
 
-  const parentIds = [parents.mom, parents.dad].filter(Boolean);
+  // 3. Убираем удаляемую семью и её котят из документов родителей
+  const parentIds = [parents?.mom, parents?.dad].filter(Boolean);
 
   if (parentIds.length > 0) {
     await ParentModel.updateMany(
       { _id: { $in: parentIds } },
       {
         $pull: {
-          // Удаляем только тех котят, которые были в этой семье
           Kittens: { $in: kittens },
-          // Удаляем только этот ID семьи из списка семей родителя
-          families: familyId,
+          // Используем family._id (объект), а не familyId (строку)
+          familyId: family._id,
         },
       },
     );
   }
-  // 3. Удаляем документ семьи из БД
+
+  // 4. Удаляем документ семьи из БД
   await FamilyModel.findByIdAndDelete(familyId);
 
   return { message: "Family successfully deleted" };
@@ -272,8 +285,6 @@ export const updateFamilyService = async (
 };
 
 export const reorderFamiliesService = async (orderedIds: string[]) => {
-  console.log(orderedIds);
-
   const bulkOperations = orderedIds.map((id, index) => ({
     updateOne: {
       filter: { _id: id },
