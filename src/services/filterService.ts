@@ -14,20 +14,18 @@ export const createColorService = async (name: { name: string }) => {
 };
 
 export const deleteColorService = async (id: string) => {
-  const color = await BreedModel.findById(id);
+  const color = await ColorModel.findById(id);
 
-  // 2. Проверяем, найден ли документ
   if (!color) {
-    throw createHttpError(404, "Breed not found");
+    throw createHttpError(404, "Color not found");
   }
 
-  // 3. Теперь breed.name доступен (TS не будет ругаться)
-  const kittenWithColor = await KittenModel.findOne({ breed: color.name });
+  const kittenWithColor = await KittenModel.exists({ color: color.name });
 
   if (kittenWithColor) {
     throw createHttpError(
-      400,
-      "Kitten with this color was found, cannot delete",
+      409,
+      "Cannot delete color: there are kittens associated with it",
     );
   }
   await ColorModel.findByIdAndDelete(id);
@@ -47,18 +45,16 @@ export const createBreedService = async (name: { name: string }) => {
 export const deleteBreedService = async (id: string) => {
   const breed = await BreedModel.findById(id);
 
-  // 2. Проверяем, найден ли документ
   if (!breed) {
     throw createHttpError(404, "Breed not found");
   }
 
-  // 3. Теперь breed.name доступен (TS не будет ругаться)
-  const kittenWithBreed = await KittenModel.findOne({ breed: breed.name });
+  const hasKittens = await KittenModel.exists({ breed: breed.name });
 
-  if (kittenWithBreed) {
+  if (hasKittens) {
     throw createHttpError(
-      400,
-      "Kitten with this breed was found, cannot delete",
+      409,
+      "Cannot delete breed: there are kittens associated with it",
     );
   }
 
