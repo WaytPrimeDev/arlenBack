@@ -10,6 +10,7 @@ const envSchema = z.object({
   API_NAME_CLOUD: z.string(),
   API_SECRET_CLOUD: z.string(),
   API_KEY_CLOUD: z.string(),
+  TELEGRAM_CHANNEL_ID: z.string(),
 });
 
 export const env = envSchema.parse(process.env);

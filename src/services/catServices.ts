@@ -99,9 +99,38 @@ export const addParentKittenService = async (
 //<------------------------------------------------------------------------------------------------------>//
 
 export const getKittensService = async (page: number, perPage: number) => {
-  const kittens = await KittenModel.find()
-    .skip((page - 1) * perPage)
-    .limit(perPage);
+  const skipCount = (page - 1) * perPage;
+
+  const kittens = await KittenModel.aggregate([
+    // 1. ПАГИНАЦИЯ (Обязательно первыми шагами для скорости!)
+    // База берет только нужные 20 документов текущей страницы
+    { $skip: skipCount },
+    { $limit: perPage },
+
+    // 2. JOIN: Подтягиваем данные из таблицы постов
+    {
+      $lookup: {
+        from: "telegramposts", // Название коллекции в MongoDB (обычно маленькими буквами с 's' на конце)
+        localField: "_id", // ID в текущей модели Kitten
+        foreignField: "kittenId", // Поле связи в TelegramPost
+        as: "telegramData",
+      },
+    },
+
+    // 3. ДОБАВЛЯЕМ ФЛАГ: Если массив telegramData не пустой, значит пост есть
+    {
+      $addFields: {
+        isTelegramPublished: { $gt: [{ $size: "$telegramData" }, 0] },
+      },
+    },
+
+    // 4. ОЧИСТКА: Убираем служебный массив, чтобы не тащить его на фронтенд
+    {
+      $project: {
+        telegramData: 0,
+      },
+    },
+  ]);
 
   return kittens;
 };

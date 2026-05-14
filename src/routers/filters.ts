@@ -1,3 +1,4 @@
+import { auth } from "@/middlewares/auth";
 import {
   createBreedController,
   createColorController,
@@ -11,10 +12,10 @@ import { Router } from "express";
 
 export const filterRoute = Router();
 
-filterRoute.get("/colors", ctrlWrapper(getColorController));
-filterRoute.post("/color", ctrlWrapper(createColorController));
-filterRoute.delete("/color/:id", ctrlWrapper(deleteColorController));
+filterRoute.get("/colors", auth, ctrlWrapper(getColorController));
+filterRoute.post("/color", auth, ctrlWrapper(createColorController));
+filterRoute.delete("/color/:id", auth, ctrlWrapper(deleteColorController));
 
-filterRoute.get("/breeds", ctrlWrapper(getBreedController));
-filterRoute.post("/breed", ctrlWrapper(createBreedController));
-filterRoute.delete("/breed/:id", ctrlWrapper(deleteBreedController));
+filterRoute.get("/breeds", auth, ctrlWrapper(getBreedController));
+filterRoute.post("/breed", auth, ctrlWrapper(createBreedController));
+filterRoute.delete("/breed/:id", auth, ctrlWrapper(deleteBreedController));
