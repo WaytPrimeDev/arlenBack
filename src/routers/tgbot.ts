@@ -1,4 +1,4 @@
-import { publishKittenToTelegram } from "@/controllers/telegramController";
+import { publishKittenToTelegram } from "../controllers/telegramController";
 import { auth } from "../middlewares/auth";
 import { ctrlWrapper } from "../utils/ctrlWrapper";
 import { Router } from "express";
