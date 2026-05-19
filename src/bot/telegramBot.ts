@@ -2,7 +2,7 @@ import { Telegraf, Markup } from "telegraf";
 import { env } from "../utils/env";
 import { getUserInfo } from "./telegramAction.ts/botController";
 
-export const bot = new Telegraf(env.MY_TEST_TG_BOT);
+export const bot = new Telegraf(env.MY_TEST_TG_BOT_OFFICIAL_CHANNEL_ID);
 
 bot.start((ctx) => {
   return ctx.reply(
@@ -10,6 +10,7 @@ bot.start((ctx) => {
     Markup.inlineKeyboard([
       Markup.button.callback("Помощь", "help"),
       Markup.button.callback("Инфо", "info"),
+      Markup.button.callback("Функции", "fsgs"),
     ]),
   );
 });
@@ -20,6 +21,10 @@ bot.action("help", (ctx) => {
 });
 
 bot.action("info", (ctx) => {
+  ctx.answerCbQuery();
+  ctx.reply("Информация...");
+});
+bot.action("fsgs", (ctx) => {
   ctx.answerCbQuery();
   ctx.reply("Информация...");
 });
