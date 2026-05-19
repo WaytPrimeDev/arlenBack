@@ -25,10 +25,10 @@ catRouter.post(
   ctrlWrapper(addKittenController),
 );
 
-catRouter.get("/kittens", ctrlWrapper(getKittensController));
+catRouter.get("/kittens", auth, ctrlWrapper(getKittensController));
 catRouter.get(
   "/kitten/:id",
-
+  auth,
   isValidId,
   ctrlWrapper(getKittenByIdController),
 );
@@ -45,8 +45,13 @@ catRouter.post(
   upload.array("images", 5),
   ctrlWrapper(addParentKittenController),
 );
-catRouter.get("/parents", ctrlWrapper(getParentController));
-catRouter.get("/parent/:id", isValidId, ctrlWrapper(getParentByIdController));
+catRouter.get("/parents", auth, ctrlWrapper(getParentController));
+catRouter.get(
+  "/parent/:id",
+  auth,
+  isValidId,
+  ctrlWrapper(getParentByIdController),
+);
 catRouter.delete(
   "/parent/:id",
   auth,

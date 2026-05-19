@@ -7,7 +7,7 @@ import {
   getParentClientService,
 } from "../../services/clientServices/сatsClientServices";
 
-export const getParentController = async (
+export const getParentsClientController = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
@@ -54,7 +54,10 @@ export const getParentByIdClientController = async (
   });
 };
 
-export const getKittensController = async (req: Request, res: Response) => {
+export const getKittensClientController = async (
+  req: Request,
+  res: Response,
+) => {
   // 1. Извлекаем пагинацию
   const { page = 1, perPage = 20 } = parsePaginationParams(
     req.query.page as string,

@@ -14,7 +14,7 @@ export const familyRouter = Router();
 
 familyRouter.post("/", auth, ctrlWrapper(createFamilyController));
 
-familyRouter.get("/", ctrlWrapper(getFamilyController));
+familyRouter.get("/", auth, ctrlWrapper(getFamilyController));
 
 familyRouter.delete(
   "/:id",
