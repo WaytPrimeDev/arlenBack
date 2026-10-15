@@ -7,8 +7,10 @@ import { ColorModel } from "../../db/model/filters/ColorModel";
 export const getParentClientService = async (page: number, perPage: number) => {
   const skipCount = (page - 1) * perPage;
 
-  // Создаем единый фильтр: только те родители, у которых есть familyId
-  const filter = { familyId: { $ne: null, $exists: true } };
+  // Создаем единый фильтр: только те родители, у которых есть хотя бы одна семья.
+  // familyId у родителя — массив, поэтому проверяем наличие первого элемента:
+  // пустой массив [] не равен null, и фильтр по { $ne: null } пропускал всех.
+  const filter = { "familyId.0": { $exists: true } };
 
   // Запускаем оба запроса параллельно
   const [totalItems, items] = await Promise.all([
