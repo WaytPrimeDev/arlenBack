@@ -98,9 +98,68 @@ export const uploadImages = async (
   return uploadedUrls.map(toStoredImage);
 };
 
+// Токен нового файла в imagesOrder: индекс в массиве загруженных файлов
+export const NEW_IMAGE_TOKEN_PREFIX = "new:";
+
+/**
+ * Раскладывает фото в порядке, заданном клиентом.
+ * Токен — либо full-URL сохранённого фото, либо "new:<индекс файла>".
+ * Проверки длины, дублей и разрешимости токенов вместе гарантируют,
+ * что imagesOrder — перестановка всех фото, а не произвольный список.
+ */
+const orderImages = (
+  retainedImages: readonly ExistingImage[],
+  uploadedImages: readonly StoredImage[],
+  imagesOrder: readonly string[],
+): ExistingImage[] => {
+  const expectedCount = retainedImages.length + uploadedImages.length;
+  if (imagesOrder.length !== expectedCount) {
+    throw createHttpError(
+      400,
+      `imagesOrder must list all ${expectedCount} photos exactly once`,
+    );
+  }
+
+  const retainedByUrl = new Map(
+    retainedImages.map((image) => [image.full, image]),
+  );
+  const seen = new Set<string>();
+
+  return imagesOrder.map((token) => {
+    if (seen.has(token)) {
+      throw createHttpError(400, `imagesOrder has a duplicate entry: ${token}`);
+    }
+    seen.add(token);
+
+    if (token.startsWith(NEW_IMAGE_TOKEN_PREFIX)) {
+      const index = Number(token.slice(NEW_IMAGE_TOKEN_PREFIX.length));
+      const uploaded = Number.isInteger(index)
+        ? uploadedImages[index]
+        : undefined;
+      if (!uploaded) {
+        throw createHttpError(
+          400,
+          `imagesOrder points to a missing upload: ${token}`,
+        );
+      }
+      return uploaded;
+    }
+
+    const retained = retainedByUrl.get(token);
+    if (!retained) {
+      throw createHttpError(
+        400,
+        `imagesOrder points to a photo that is not retained: ${token}`,
+      );
+    }
+    return retained;
+  });
+};
+
 /**
  * Чистая функция: собирает итоговый массив фото.
- * - порядок задаёт клиент: сначала retainedUrls в его порядке, потом новые;
+ * - порядок задаёт клиент: imagesOrder, либо (если его нет) retainedUrls в его
+ *   порядке, а новые — следом;
  * - главное фото — первое в итоговом массиве;
  * - URL, которых нет у записи, — ошибка клиента (400), а не молчаливый пропуск.
  */
@@ -108,6 +167,7 @@ export const syncImages = (
   currentImages: readonly ExistingImage[],
   retainedUrls: readonly string[],
   uploadedImages: readonly StoredImage[],
+  imagesOrder?: readonly string[],
 ): ImageSyncResult => {
   const currentByUrl = new Map(
     currentImages.map((image) => [image.full, image]),
@@ -122,10 +182,10 @@ export const syncImages = (
     );
   }
 
-  const ordered: ExistingImage[] = [
-    ...uniqueRetainedUrls.map((url) => currentByUrl.get(url)!),
-    ...uploadedImages,
-  ];
+  const retainedImages = uniqueRetainedUrls.map((url) => currentByUrl.get(url)!);
+  const ordered: ExistingImage[] = imagesOrder
+    ? orderImages(retainedImages, uploadedImages, imagesOrder)
+    : [...retainedImages, ...uploadedImages];
   assertImageCount(ordered.length);
 
   // Явная сборка объекта: spread mongoose-сабдокумента тащит служебные поля
@@ -156,9 +216,11 @@ export const applyImageChanges = async (options: {
   retainedUrls: readonly string[];
   newFiles: Express.Multer.File[];
   folder: string;
+  imagesOrder?: readonly string[];
   persist: (images: StoredImage[]) => Promise<void>;
 }) => {
-  const { currentImages, retainedUrls, newFiles, folder, persist } = options;
+  const { currentImages, retainedUrls, newFiles, folder, imagesOrder, persist } =
+    options;
 
   // Дешёвая предпроверка, чтобы не грузить файлы зря
   assertImageCount(new Set(retainedUrls).size + newFiles.length);
@@ -167,7 +229,12 @@ export const applyImageChanges = async (options: {
 
   let removedUrls: string[];
   try {
-    const result = syncImages(currentImages, retainedUrls, uploadedImages);
+    const result = syncImages(
+      currentImages,
+      retainedUrls,
+      uploadedImages,
+      imagesOrder,
+    );
     await persist(result.images);
     removedUrls = result.removedUrls;
   } catch (error) {

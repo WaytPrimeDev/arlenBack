@@ -317,13 +317,14 @@ export const updateKittenService = async (
       throw createHttpError(404, "Kitten not found");
     }
 
-    const { retainedImages, breeding, pet, ...fields } = input;
+    const { retainedImages, imagesOrder, breeding, pet, ...fields } = input;
 
     await applyImageChanges({
       currentImages: kitten.images,
       retainedUrls: retainedImages ?? kitten.images.map((image) => image.full),
       newFiles: newPhotos,
       folder: "cats/kittens",
+      imagesOrder,
       persist: async (images) => {
         kitten.set({ ...fields, images });
         // точечно, чтобы не затереть вторую цену
@@ -356,13 +357,14 @@ export const updateParentService = async (
       throw createHttpError(404, "Parent not found");
     }
 
-    const { retainedImages, ...fields } = input;
+    const { retainedImages, imagesOrder, ...fields } = input;
 
     await applyImageChanges({
       currentImages: parent.images,
       retainedUrls: retainedImages ?? parent.images.map((image) => image.full),
       newFiles: newPhotos,
       folder: "cats/parents",
+      imagesOrder,
       persist: async (images) => {
         parent.set({ ...fields, images });
         await parent.save(); // валидаторы схемы (enum sex, 1..5 фото) срабатывают здесь

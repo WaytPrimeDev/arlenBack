@@ -1,21 +1,30 @@
 import { z } from "zod";
 import { KittenStatus, Sex } from "../interface/kittenTypes";
 
-// multipart передаёт retainedImages как JSON-строку: '["url1","url2"]'
-const retainedImagesField = z
-  .string()
-  .transform((raw, context) => {
+// multipart передаёт массивы как JSON-строку: '["url1","url2"]'
+const jsonArrayField = (field: string) =>
+  z.string().transform((raw, context) => {
     try {
       return JSON.parse(raw) as unknown;
     } catch {
       context.addIssue({
         code: "custom",
-        message: "retainedImages must be a JSON array",
+        message: `${field} must be a JSON array`,
       });
       return z.NEVER;
     }
-  })
-  .pipe(z.array(z.url()).max(5));
+  });
+
+const retainedImagesField = jsonArrayField("retainedImages").pipe(
+  z.array(z.url()).max(5),
+);
+
+// Порядок фото целиком: full-URL сохранённого фото либо "new:<индекс файла>".
+// Нужен, чтобы только что загруженное фото могло встать перед сохранёнными
+// (первое фото итога — главное).
+const imagesOrderField = jsonArrayField("imagesOrder").pipe(
+  z.array(z.union([z.url(), z.string().regex(/^new:\d+$/)])).max(5),
+);
 
 const nonEmptyText = z.string().trim().min(1);
 
@@ -27,6 +36,8 @@ export const updateParentSchema = z.object({
   sex: z.enum(Sex).optional(),
   // отсутствует → фото не трогаем; "[]" → удалить все старые
   retainedImages: retainedImagesField.optional(),
+  // отсутствует → сохранённые фото, следом новые
+  imagesOrder: imagesOrderField.optional(),
 });
 
 export const updateKittenSchema = updateParentSchema.extend({
