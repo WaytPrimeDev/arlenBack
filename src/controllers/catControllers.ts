@@ -13,6 +13,12 @@ import {
 } from "../services/catServices";
 import { Request, Response } from "express";
 import createHttpError from "http-errors";
+import { z } from "zod";
+import { removeTempFiles } from "../utils/images";
+import {
+  updateKittenSchema,
+  updateParentSchema,
+} from "../validation/catSchemas";
 
 export const getParentController = async (
   _req: Request,
@@ -155,15 +161,13 @@ export const updateParentController = async (
   const { id } = req.params as { id: string };
   const files = (req.files as Express.Multer.File[]) || [];
 
-  // Валидация: максимум 5 фото в сумме (старые + новые)
-  if (files.length > 5) {
-    throw createHttpError(
-      400,
-      "Maximum 5 photos allowed (including retained images)",
-    );
+  const parsed = updateParentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    await removeTempFiles(files);
+    throw createHttpError(400, z.prettifyError(parsed.error));
   }
 
-  const updatedParent = await updateParentService(id, req.body, files);
+  const updatedParent = await updateParentService(id, parsed.data, files);
 
   res.json({
     status: 200,
@@ -182,23 +186,14 @@ export const updateKittenController = async (
 ): Promise<void> => {
   const { id } = req.params as { id: string };
   const files = (req.files as Express.Multer.File[]) || [];
-  const { retainedImages } = req.body;
 
-  if (JSON.parse(retainedImages).length + files.length > 5) {
-    throw createHttpError(
-      400,
-      "Maximum 5 photos allowed (including retained images)",
-    );
+  const parsed = updateKittenSchema.safeParse(req.body);
+  if (!parsed.success) {
+    await removeTempFiles(files);
+    throw createHttpError(400, z.prettifyError(parsed.error));
   }
 
-  const updatedKitten = await updateKittenService(
-    id,
-    {
-      ...req.body,
-      ...JSON.parse(retainedImages),
-    },
-    files,
-  );
+  const updatedKitten = await updateKittenService(id, parsed.data, files);
 
   res.json({
     status: 200,

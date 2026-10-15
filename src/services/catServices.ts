@@ -1,6 +1,7 @@
 import createHttpError from "http-errors";
 import path from "node:path";
 import fs from "fs/promises";
+import mongoose from "mongoose";
 
 import {
   uploadToCloudinary,
@@ -10,6 +11,11 @@ import { KittenDataDto, ParentDataDto } from "../interface/kittenTypes";
 import { KittenModel } from "../db/model/cats/KittenModel";
 import { ParentModel } from "../db/model/cats/ParentModel";
 import { FamilyModel } from "../db/model/family/FamilyModel";
+import { applyImageChanges, removeTempFiles } from "../utils/images";
+import {
+  UpdateKittenInput,
+  UpdateParentInput,
+} from "../validation/catSchemas";
 
 export const getParentService = async () => {
   const parents = await ParentModel.find();
@@ -300,268 +306,85 @@ export const deleteKittenService = async (kittenId: string) => {
 // ОБНОВЛЕНИЕ КОТЕНКА (Kitten) - Частичное обновление с логикой фотографий
 //<------------------------------------------------------------------------------------------------------>//
 
-interface UpdateKittenData {
-  nameUa?: string;
-  nameEn?: string;
-  color?: string;
-  birthDay?: Date;
-  status?: string;
-  breed?: string;
-  sex?: string;
-
-  breeding?: string;
-  pet?: string;
-
-  retainedImages?: string | string[]; // URL или ID фото, которые нужно оставить
-}
-
 export const updateKittenService = async (
   kittenId: string,
-  data: UpdateKittenData,
-  newPhotos: Express.Multer.File[] = [],
-): Promise<any> => {
-  // 1. Проверяем, существует ли котенок в БД
-  const kitten = await KittenModel.findById(kittenId);
-  if (!kitten) {
-    throw createHttpError(404, "Kitten not found");
-  }
-
-  // 2. Парсим retainedImages (может быть строка, массив строк или пустой)
-  let retainedImageUrls: string[] = [];
-  if (data.retainedImages) {
-    if (typeof data.retainedImages === "string") {
-      retainedImageUrls = [data.retainedImages];
-    } else if (Array.isArray(data.retainedImages)) {
-      retainedImageUrls = data.retainedImages;
+  input: UpdateKittenInput,
+  newPhotos: Express.Multer.File[],
+) => {
+  try {
+    const kitten = await KittenModel.findById(kittenId);
+    if (!kitten) {
+      throw createHttpError(404, "Kitten not found");
     }
-  }
 
-  // 3. Вычисляем, какие старые фото нужно удалить из Cloudinary
-  // (те, которых нет в retainedImages)
-  const currentImageUrls = kitten.images?.map((img) => img.full) || [];
-  const imagesToDelete = currentImageUrls.filter(
-    (url) => !retainedImageUrls.includes(url),
-  );
+    const { retainedImages, breeding, pet, ...fields } = input;
 
-  // 4. Удаляем старые фото из Cloudinary
-  if (imagesToDelete.length > 0) {
-    await deleteMultipleFromCloudinary(imagesToDelete);
-  }
-
-  // 5. Загружаем новые фото, если они есть
-  let newUploadedImages: any[] = [];
-  if (newPhotos.length > 0) {
-    const uploadPromises = newPhotos.map(async (file, index) => {
-      const uniqueName = path.parse(file.filename).name;
-      try {
-        const url = await uploadToCloudinary(
-          file.path,
-          "cats/kittens",
-          uniqueName,
-        );
-
-        const getTransformedUrl = (params: string) =>
-          url.replace("/upload/", `/upload/${params}/`);
-
-        return {
-          full: url,
-          thumbnail: getTransformedUrl("w_200,h_200,c_fill"),
-          mobile: getTransformedUrl("w_400,h_400,c_fill"),
-          isMain: index === 0, // Новые фото не помечаем как главное
-        };
-      } catch (err) {
-        throw createHttpError(
-          500,
-          `Failed to upload photo: ${file.originalname}`,
-        );
-      }
+    await applyImageChanges({
+      currentImages: kitten.images,
+      retainedUrls: retainedImages ?? kitten.images.map((image) => image.full),
+      newFiles: newPhotos,
+      folder: "cats/kittens",
+      persist: async (images) => {
+        kitten.set({ ...fields, images });
+        // точечно, чтобы не затереть вторую цену
+        if (breeding !== undefined) kitten.set("price.breeding", breeding);
+        if (pet !== undefined) kitten.set("price.pet", pet);
+        await kitten.save(); // валидаторы схемы (enum'ы, 1..5 фото) срабатывают здесь
+      },
     });
 
-    try {
-      newUploadedImages = await Promise.all(uploadPromises);
-    } finally {
-      // Гарантированно удаляем локальные файлы
-      await Promise.allSettled(
-        newPhotos.map((file) =>
-          fs
-            .unlink(file.path)
-            .catch((err) =>
-              console.warn(`Cleanup failed for ${file.path}:`, err),
-            ),
-        ),
-      );
-    }
+    return kitten.toObject();
+  } catch (error) {
+    throw toHttpError(error, "Kitten not found");
+  } finally {
+    await removeTempFiles(newPhotos);
   }
-
-  // 6. Собираем итоговый массив фото:
-  // - Оставляем старые фото, которые были в retainedImages
-  // - Добавляем новые загруженные фото
-  const retainedOldImages =
-    kitten.images?.filter((img) => retainedImageUrls.includes(img.full)) || [];
-
-  const finalImages = [...retainedOldImages, ...newUploadedImages];
-
-  // Убедимся, что у нас есть хотя бы одно фото
-  if (finalImages.length === 0) {
-    throw createHttpError(400, "At least 1 image is required");
-  }
-  if (finalImages.length > 5) {
-    throw createHttpError(400, "Maximum 5 photos allowed");
-  }
-
-  // 7. Собираем обновляемые данные (обновляем только переданные поля)
-  const updateData: any = {};
-
-  if (data.nameUa) updateData.nameUa = data.nameUa;
-  if (data.nameEn) updateData.nameEn = data.nameEn;
-  if (data.color) updateData.color = data.color;
-  if (data.birthDay) updateData.birthDay = data.birthDay;
-  if (data.status) updateData.status = data.status;
-  if (data.breed) updateData.breed = data.breed;
-  if (data.sex) updateData.sex = data.sex;
-
-  // Обновляем цены только если переданы
-  if (data.breeding || data.pet) {
-    updateData.price = {
-      breeding:
-        data.breeding !== undefined ? data.breeding : kitten.price?.breeding,
-      pet: data.pet !== undefined ? data.pet : kitten.price?.pet,
-    };
-  }
-
-  // Всегда обновляем массив фото
-  updateData.images = finalImages;
-
-  // 8. Обновляем документ котенка в БД
-  const updatedKitten = await KittenModel.findByIdAndUpdate(
-    kittenId,
-    updateData,
-    { new: true },
-  );
-
-  return updatedKitten?.toObject();
 };
 
 //<------------------------------------------------------------------------------------------------------>//
 // ОБНОВЛЕНИЕ РОДИТЕЛЯ (Parent) - Частичное обновление с логикой фотографий
 //<------------------------------------------------------------------------------------------------------>//
 
-interface UpdateParentData {
-  nameUa?: string;
-  nameEn?: string;
-  color?: string;
-  breed?: string;
-  sex?: string;
-  retainedImages?: string | string[]; // URL или ID фото, которые нужно оставить
-}
-
 export const updateParentService = async (
   parentId: string,
-  data: UpdateParentData,
-  newPhotos: Express.Multer.File[] = [],
-): Promise<any> => {
-  // 1. Проверяем, существует ли родитель в БД
-  const parent = await ParentModel.findById(parentId);
-  if (!parent) {
-    throw createHttpError(404, "Parent not found");
-  }
-
-  // 2. Парсим retainedImages
-  let retainedImageUrls: string[] = [];
-  if (data.retainedImages) {
-    if (typeof data.retainedImages === "string") {
-      retainedImageUrls = [data.retainedImages];
-    } else if (Array.isArray(data.retainedImages)) {
-      retainedImageUrls = data.retainedImages;
+  input: UpdateParentInput,
+  newPhotos: Express.Multer.File[],
+) => {
+  try {
+    const parent = await ParentModel.findById(parentId);
+    if (!parent) {
+      throw createHttpError(404, "Parent not found");
     }
-  }
 
-  // 3. Вычисляем, какие старые фото удалить
-  const currentImageUrls = parent.images?.map((img) => img.full) || [];
-  const imagesToDelete = currentImageUrls.filter(
-    (url) => !retainedImageUrls.includes(url),
-  );
+    const { retainedImages, ...fields } = input;
 
-  // 4. Удаляем старые фото из Cloudinary
-  if (imagesToDelete.length > 0) {
-    await deleteMultipleFromCloudinary(imagesToDelete);
-  }
-
-  // 5. Загружаем новые фото
-  let newUploadedImages: any[] = [];
-  if (newPhotos.length > 0) {
-    const uploadPromises = newPhotos.map(async (file) => {
-      const uniqueName = path.parse(file.filename).name;
-      try {
-        const url = await uploadToCloudinary(
-          file.path,
-          "cats/parents",
-          uniqueName,
-        );
-
-        const getTransformedUrl = (params: string) =>
-          url.replace("/upload/", `/upload/${params}/`);
-
-        return {
-          full: url,
-          thumbnail: getTransformedUrl("w_200,h_200,c_fill"),
-          mobile: getTransformedUrl("w_400,h_400,c_fill"),
-          isMain: false,
-        };
-      } catch (err) {
-        throw createHttpError(
-          500,
-          `Failed to upload photo: ${file.originalname}`,
-        );
-      }
+    await applyImageChanges({
+      currentImages: parent.images,
+      retainedUrls: retainedImages ?? parent.images.map((image) => image.full),
+      newFiles: newPhotos,
+      folder: "cats/parents",
+      persist: async (images) => {
+        parent.set({ ...fields, images });
+        await parent.save(); // валидаторы схемы (enum sex, 1..5 фото) срабатывают здесь
+      },
     });
 
-    try {
-      newUploadedImages = await Promise.all(uploadPromises);
-    } finally {
-      await Promise.allSettled(
-        newPhotos.map((file) =>
-          fs
-            .unlink(file.path)
-            .catch((err) =>
-              console.warn(`Cleanup failed for ${file.path}:`, err),
-            ),
-        ),
-      );
-    }
+    return parent.toObject();
+  } catch (error) {
+    throw toHttpError(error, "Parent not found");
+  } finally {
+    await removeTempFiles(newPhotos);
   }
+};
 
-  // 6. Собираем финальный массив фото
-  const retainedOldImages =
-    parent.images?.filter((img) => retainedImageUrls.includes(img.full)) || [];
-  const finalImages = [...retainedOldImages, ...newUploadedImages];
-
-  if (finalImages.length === 0) {
-    throw createHttpError(400, "At least 1 image is required");
+// Ошибки mongoose не несут HTTP-статуса — без этого errorHandler отдаёт 500
+const toHttpError = (error: unknown, notFoundMessage: string) => {
+  if (error instanceof mongoose.Error.ValidationError) {
+    return createHttpError(400, error.message);
   }
-  if (finalImages.length > 5) {
-    throw createHttpError(400, "Maximum 5 photos allowed");
+  if (error instanceof mongoose.Error.DocumentNotFoundError) {
+    // запись удалили между findById и save
+    return createHttpError(404, notFoundMessage);
   }
-
-  // 7. Собираем обновляемые данные
-  const updateData: any = {};
-
-  if (data.nameUa) updateData.nameUa = data.nameUa;
-  if (data.nameEn) updateData.nameEn = data.nameEn;
-  if (data.color) updateData.color = data.color;
-  if (data.breed) updateData.breed = data.breed;
-  if (data.sex) updateData.sex = data.sex;
-
-  updateData.images = finalImages;
-
-  // 8. Обновляем документ родителя в БД
-  const updatedParent = await ParentModel.findByIdAndUpdate(
-    parentId,
-    updateData,
-    {
-      new: true,
-    },
-  );
-
-  return updatedParent?.toObject();
+  return error;
 };

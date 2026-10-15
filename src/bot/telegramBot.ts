@@ -2,7 +2,7 @@ import { Telegraf, Markup } from "telegraf";
 import { env } from "../utils/env";
 import { getUserInfo } from "./telegramAction.ts/botController";
 
-export const bot = new Telegraf(env.MY_TEST_TG_BOT);
+export const bot = new Telegraf(env.MY_TEST_TG_BOT_OFFICIAL_CHANNEL_ID);
 
 bot.start((ctx) => {
   return ctx.reply(
