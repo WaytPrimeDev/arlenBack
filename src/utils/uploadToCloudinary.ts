@@ -29,10 +29,28 @@ export const uploadToCloudinary = async (
   });
 };
 
+// Префиксы параметров трансформаций: по ним segment отличается от папки.
+// Имя папки вида "cats_parents" не пройдёт — "cats" не входит в список.
+const TRANSFORMATION_PREFIXES = [
+  "a", "ac", "ar", "b", "bo", "br", "c", "co", "cs", "d", "dl", "dn", "dpr",
+  "du", "e", "eo", "f", "fl", "fn", "fps", "g", "h", "if", "ki", "l", "o",
+  "p", "pg", "q", "r", "so", "sp", "t", "u", "vc", "vs", "w", "x", "y", "z",
+];
+
+// Компонент трансформации: все его части через запятую — "<префикс>_<значение>"
+const isTransformationSegment = (segment: string) =>
+  segment
+    .split(",")
+    .every((part) =>
+      TRANSFORMATION_PREFIXES.includes(part.slice(0, part.indexOf("_"))),
+    );
+
 /**
  * Извлекает public_id из полного URL Cloudinary
  * Пример: https://res.cloudinary.com/cloud-name/image/upload/v1234567890/cats/parents/filename.jpg
  * Результат: cats/parents/filename
+ * Трансформации и версия отбрасываются:
+ * .../upload/c_fill,w_200/e_improve/v123/cats/parents/file.jpg -> cats/parents/file
  */
 export const extractPublicIdFromUrl = (fullUrl: string): string => {
   try {
@@ -45,11 +63,17 @@ export const extractPublicIdFromUrl = (fullUrl: string): string => {
     // Берем часть после "/upload/"
     const afterUpload = fullUrl.substring(uploadIndex + 8); // "/upload/" = 8 символов
 
-    // Удаляем версию вида /v1234567890/
-    const publicIdWithVersion = afterUpload.replace(/^v\d+\//, "");
+    // Отбрасываем компоненты трансформаций, затем версию вида v1234567890
+    const segments = afterUpload.split("/");
+    while (segments.length > 1 && isTransformationSegment(segments[0])) {
+      segments.shift();
+    }
+    if (segments.length > 1 && /^v\d+$/.test(segments[0])) {
+      segments.shift();
+    }
 
     // Удаляем расширение файла
-    const publicId = publicIdWithVersion.replace(/\.[^/.]+$/, "");
+    const publicId = segments.join("/").replace(/\.[^/.]+$/, "");
 
     return publicId;
   } catch (error) {

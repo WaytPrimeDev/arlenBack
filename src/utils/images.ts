@@ -28,10 +28,13 @@ export interface ImageSyncResult {
 const withTransformation = (url: string, params: string) =>
   url.replace("/upload/", `/upload/${params}/`);
 
+// e_improve — автокоррекция цвета, контраста и яркости (обычная трансформация,
+// 1 tx, без add-on). Кроп идёт до него, чтобы улучшение считалось по итоговому
+// кадру; f_auto/q_auto — оптимизация формата и веса на доставке.
 const toStoredImage = (url: string): StoredImage => ({
-  full: url,
-  thumbnail: withTransformation(url, "w_200,h_200,c_fill"),
-  mobile: withTransformation(url, "w_400,h_400,c_fill"),
+  full: withTransformation(url, "e_improve/f_auto/q_auto"),
+  thumbnail: withTransformation(url, "c_fill,w_200,h_200/e_improve/f_auto/q_auto"),
+  mobile: withTransformation(url, "c_fill,w_400,h_400/e_improve/f_auto/q_auto"),
   isMain: false, // главное фото назначает syncImages
 });
 
