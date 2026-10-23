@@ -11,7 +11,11 @@ import { KittenDataDto, ParentDataDto } from "../interface/kittenTypes";
 import { KittenModel } from "../db/model/cats/KittenModel";
 import { ParentModel } from "../db/model/cats/ParentModel";
 import { FamilyModel } from "../db/model/family/FamilyModel";
-import { applyImageChanges, removeTempFiles } from "../utils/images";
+import {
+  applyImageChanges,
+  assertImageCount,
+  removeTempFiles,
+} from "../utils/images";
 import {
   UpdateKittenInput,
   UpdateParentInput,
@@ -27,12 +31,7 @@ export const addParentKittenService = async (
   photos: Express.Multer.File[],
 ) => {
   // 1. Ранняя валидация файлов до начала загрузки
-  if (!photos || photos.length === 0) {
-    throw createHttpError(400, "At least 1 image is required");
-  }
-  if (photos.length > 5) {
-    throw createHttpError(400, "Max 5 images allowed");
-  }
+  assertImageCount(photos?.length ?? 0);
 
   // 2. Формируем промисы для загрузки в Cloudinary
   const uploadPromises = photos.map(async (file, index) => {
@@ -330,7 +329,7 @@ export const updateKittenService = async (
         // точечно, чтобы не затереть вторую цену
         if (breeding !== undefined) kitten.set("price.breeding", breeding);
         if (pet !== undefined) kitten.set("price.pet", pet);
-        await kitten.save(); // валидаторы схемы (enum'ы, 1..5 фото) срабатывают здесь
+        await kitten.save(); // валидаторы схемы (enum'ы, 1..MAX_IMAGES фото) срабатывают здесь
       },
     });
 
@@ -367,7 +366,7 @@ export const updateParentService = async (
       imagesOrder,
       persist: async (images) => {
         parent.set({ ...fields, images });
-        await parent.save(); // валидаторы схемы (enum sex, 1..5 фото) срабатывают здесь
+        await parent.save(); // валидаторы схемы (enum sex, 1..MAX_IMAGES фото) срабатывают здесь
       },
     });
 

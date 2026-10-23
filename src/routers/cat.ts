@@ -15,13 +15,14 @@ import { auth } from "../middlewares/auth";
 import { isValidId } from "../middlewares/isValidId";
 import { upload } from "../middlewares/multer";
 import { ctrlWrapper } from "../utils/ctrlWrapper";
+import { MAX_IMAGES } from "../utils/images";
 
 export const catRouter = Router();
 
 catRouter.post(
   "/kitten",
   auth,
-  upload.array("images", 5),
+  upload.array("images", MAX_IMAGES),
   ctrlWrapper(addKittenController),
 );
 
@@ -42,7 +43,7 @@ catRouter.delete(
 catRouter.post(
   "/parent",
   auth,
-  upload.array("images", 5),
+  upload.array("images", MAX_IMAGES),
   ctrlWrapper(addParentKittenController),
 );
 catRouter.get("/parents", auth, ctrlWrapper(getParentController));
@@ -63,7 +64,7 @@ catRouter.patch(
   "/kitten/:id",
   auth,
   isValidId,
-  upload.array("images", 5),
+  upload.array("images", MAX_IMAGES),
   ctrlWrapper(updateKittenController),
 );
 
@@ -71,7 +72,7 @@ catRouter.patch(
   "/parent/:id",
   auth,
   isValidId,
-  upload.array("images", 5),
+  upload.array("images", MAX_IMAGES),
   ctrlWrapper(updateParentController),
 );
 

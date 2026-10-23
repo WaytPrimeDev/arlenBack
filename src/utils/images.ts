@@ -8,7 +8,7 @@ import {
 } from "./uploadToCloudinary";
 
 export const MIN_IMAGES = 1;
-export const MAX_IMAGES = 5;
+export const MAX_IMAGES = 10;
 
 export interface StoredImage {
   full: string;

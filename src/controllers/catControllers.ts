@@ -14,7 +14,7 @@ import {
 import { Request, Response } from "express";
 import createHttpError from "http-errors";
 import { z } from "zod";
-import { removeTempFiles } from "../utils/images";
+import { assertImageCount, removeTempFiles } from "../utils/images";
 import {
   updateKittenSchema,
   updateParentSchema,
@@ -40,8 +40,7 @@ export const addParentKittenController = async (
   const files = request.files;
 
   if (!Array.isArray(files)) throw createHttpError(400, "Photos are required");
-  if (!files?.length) throw createHttpError(400, "Minimum 1 photo required");
-  if (files.length > 5) throw createHttpError(400, "Maximum 5 photos allowed");
+  assertImageCount(files.length);
 
   const parent = await addParentKittenService(request.body, files);
   res.json({
@@ -67,8 +66,7 @@ export const addKittenController = async (
   };
 
   if (!Array.isArray(files)) throw createHttpError(400, "Photos are required");
-  if (!files?.length) throw createHttpError(400, "Minimum 1 photo required");
-  if (files.length > 5) throw createHttpError(400, "Maximum 5 photos allowed");
+  assertImageCount(files.length);
 
   const kitten = await addKittenService(
     { ...req.body, price, parentId },

@@ -36,7 +36,6 @@ export const publishKittenToTelegram = async (req: Request, res: Response) => {
 💰 Цена (Pet): ${kitten.price.pet !== "null" ? kitten.price.pet : "Уточняйте"}
     `.trim();
 
-    console.log("ПРОБУЕМ ОТПРАВИТЬ В ЧАТ С ID:", `"${chatId}"`);
 
     // 1. Ограничение Telegram: максимум 10 фото в одном альбоме (Media Group)
     const imagesToSend = kitten.images.slice(0, 10);

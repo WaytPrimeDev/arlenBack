@@ -1,5 +1,6 @@
 import { Sex, KittenStatus } from "../../../interface/kittenTypes";
 import { model, Schema } from "mongoose";
+import { MAX_IMAGES, MIN_IMAGES } from "../../../utils/images";
 
 const parentSchema = new Schema(
   {
@@ -50,12 +51,12 @@ const kittenSchema = new Schema(
       type: [imageSchema],
       validate: [
         {
-          validator: (arr: any[]) => arr.length >= 1,
-          message: "At least 1 image is required",
+          validator: (arr: any[]) => arr.length >= MIN_IMAGES,
+          message: `At least ${MIN_IMAGES} image is required`,
         },
         {
-          validator: (arr: any[]) => arr.length <= 5,
-          message: "Max 5 images allowed",
+          validator: (arr: any[]) => arr.length <= MAX_IMAGES,
+          message: `Max ${MAX_IMAGES} images allowed`,
         },
       ],
     },
