@@ -1,12 +1,7 @@
 import createHttpError from "http-errors";
-import path from "node:path";
-import fs from "fs/promises";
 import mongoose from "mongoose";
 
-import {
-  uploadToCloudinary,
-  deleteMultipleFromCloudinary,
-} from "../utils/uploadToCloudinary";
+import { deleteMultipleFromCloudinary } from "../utils/uploadToCloudinary";
 import { KittenDataDto, ParentDataDto } from "../interface/kittenTypes";
 import { KittenModel } from "../db/model/cats/KittenModel";
 import { ParentModel } from "../db/model/cats/ParentModel";
@@ -15,6 +10,8 @@ import {
   applyImageChanges,
   assertImageCount,
   removeTempFiles,
+  uploadImages,
+  StoredImage,
 } from "../utils/images";
 import {
   UpdateKittenInput,
@@ -33,69 +30,38 @@ export const addParentKittenService = async (
   // 1. Ранняя валидация файлов до начала загрузки
   assertImageCount(photos?.length ?? 0);
 
-  // 2. Формируем промисы для загрузки в Cloudinary
-  const uploadPromises = photos.map(async (file, index) => {
-    const uniqueName = path.parse(file.filename).name;
+  let uploadedImages: StoredImage[];
 
-    try {
-      const url = await uploadToCloudinary(
-        file.path,
-        "cats/parents",
-        uniqueName,
-      );
-
-      const getTransformedUrl = (params: string) =>
-        url.replace("/upload/", `/upload/${params}/`);
-
-      return {
-        full: url,
-        thumbnail: getTransformedUrl("w_200,h_200,c_fill"),
-        mobile: getTransformedUrl("w_400,h_400,c_fill"),
-        isMain: index === 0,
-        // localPath: file.path,
-      };
-    } catch (err) {
-      throw createHttpError(
-        500,
-        `Failed to upload photo to Cloudinary: ${file.originalname}`,
-      );
-    }
-  });
-
-  let uploadedImages;
-
-  // 3. Загружаем в Cloudinary и ГАРАНТИРОВАННО удаляем локальные файлы
+  // 2. Сжимаем, загружаем в Cloudinary и ГАРАНТИРОВАННО удаляем локальные файлы.
+  //    uploadImages работает по принципу "всё или ничего": при сбое на любом
+  //    файле уже загруженные удаляются сами.
   try {
-    uploadedImages = await Promise.all(uploadPromises);
+    uploadedImages = await uploadImages(photos, "cats/parents");
   } finally {
-    // Promise.allSettled гарантирует, что мы попытаемся удалить все файлы,
-    // даже если один из них вызовет ошибку.
-    await Promise.allSettled(
-      photos.map((file) =>
-        fs
-          .unlink(file.path)
-          .catch((err) =>
-            console.warn(`Cleanup failed for ${file.path}:`, err),
-          ),
-      ),
-    );
+    await removeTempFiles(photos);
   }
+
+  // 3. Главное фото — первое в присланном порядке
+  const images = uploadedImages.map((image, index) => ({
+    ...image,
+    isMain: index === 0,
+  }));
 
   // 4. Сохраняем данные в БД
   try {
     const parent = await ParentModel.create({
       ...data,
-      images: uploadedImages,
+      images,
     });
 
     return {
       ...parent.toObject(),
     };
   } catch (error) {
-    console.error(
-      "Database save failed. Orphaned images might exist in Cloudinary",
-      error,
-    );
+    // Запись не удалась — убираем уже загруженные фото,
+    // иначе в Cloudinary останутся сироты
+    console.error("Database save failed, rolling back uploads", error);
+    await deleteMultipleFromCloudinary(images.map((image) => image.full));
 
     throw createHttpError(500, "Failed to save parent data to the database");
   }
@@ -160,40 +126,26 @@ export const addKittenService = async (
   data: KittenDataDto,
   photos: Express.Multer.File[],
 ): Promise<KittenDataDto> => {
-  const uploadPromises = photos.map(async (file, index) => {
-    const uniqueName = path.parse(file.filename).name;
+  assertImageCount(photos?.length ?? 0);
 
-    try {
-      const url = await uploadToCloudinary(
-        file.path,
-        "cats/kittens",
-        uniqueName,
-      );
-
-      const getTransformedUrl = (params: string) =>
-        url.replace("/upload/", `/upload/${params}/`);
-
-      return {
-        full: url,
-        thumbnail: getTransformedUrl("w_200,h_200,c_fill"),
-        mobile: getTransformedUrl("w_400,h_400,c_fill"),
-        isMain: index === 0,
-        localPath: file.path,
-      };
-    } catch (err) {
-      throw createHttpError(
-        500,
-        `Failed to upload photo: ${file.originalname}`,
-      );
-    }
-  });
+  let uploadedImages: StoredImage[];
 
   try {
-    const uploadedImages = await Promise.all(uploadPromises);
+    uploadedImages = await uploadImages(photos, "cats/kittens");
+  } finally {
+    await removeTempFiles(photos);
+  }
 
+  // Главное фото — первое в присланном порядке
+  const images = uploadedImages.map((image, index) => ({
+    ...image,
+    isMain: index === 0,
+  }));
+
+  try {
     const kitten = await KittenModel.create({
       ...data,
-      images: uploadedImages.map(({ localPath, ...img }) => img),
+      images,
     });
 
     return {
@@ -203,12 +155,11 @@ export const addKittenService = async (
         dad: kitten.parentId?.dad?.toString() || null,
       },
     };
-  } finally {
-    for (const file of photos) {
-      fs.unlink(file.path).catch((err) =>
-        console.warn(`Cleanup failed for ${file.path}:`, err),
-      );
-    }
+  } catch (error) {
+    console.error("Database save failed, rolling back uploads", error);
+    await deleteMultipleFromCloudinary(images.map((image) => image.full));
+
+    throw error;
   }
 };
 

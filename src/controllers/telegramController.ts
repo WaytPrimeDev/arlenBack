@@ -6,6 +6,8 @@ import { TelegramPostModel } from "../db/model/bot/TelegramPostModel";
 import { bot } from "../bot/telegramBot";
 import createHttpError from "http-errors";
 import { z } from "zod";
+import { toJpegUrl } from "../utils/uploadToCloudinary";
+import { htmlVisibleLength, sanitizeTelegramHtml } from "../utils/telegramHtml";
 
 import {
   ANNOUNCEMENT_SEPARATOR,
@@ -30,7 +32,9 @@ export const publishKittenToTelegram = async (
   if (!parsed.success) {
     throw createHttpError(400, z.prettifyError(parsed.error));
   }
-  const messageText = parsed.data.text;
+  // Клиент присылает готовый HTML-шаблон поста: оставляем теги, которые
+  // Telegram понимает, остальное экранируем, чтобы отправка не упала
+  const messageText = sanitizeTelegramHtml(parsed.data.text);
 
   const kitten = await KittenModel.findById(id);
   if (!kitten) throw createHttpError(404, "Котенок не найден");
@@ -45,13 +49,15 @@ export const publishKittenToTelegram = async (
   const mediaGroup = imagesToSend.map((img, index) => {
     const mediaItem: any = {
       type: "photo",
-      media: img.full,
+      // Telegram по URL надёжно принимает только JPEG/PNG, а в Cloudinary
+      // исходник лежит в WebP
+      media: toJpegUrl(img.full),
     };
 
     // 3. Добавляем текст только к ПЕРВОЙ фотографии в альбоме
     if (index === 0) {
       mediaItem.caption = messageText;
-      mediaItem.parse_mode = "Markdown";
+      mediaItem.parse_mode = "HTML";
     }
 
     return mediaItem;
@@ -108,7 +114,8 @@ export const announceKittenPost = async (
   if (!parsed.success) {
     throw createHttpError(400, z.prettifyError(parsed.error));
   }
-  const { text, status } = parsed.data;
+  const { status } = parsed.data;
+  const text = sanitizeTelegramHtml(parsed.data.text);
 
   const post = await TelegramPostModel.findOne({ kittenId: id });
   if (!post) throw createHttpError(404, "Пост не найден, сначала опубликуйте");
@@ -121,10 +128,12 @@ export const announceKittenPost = async (
   }
 
   const fullCaption = `${text}${ANNOUNCEMENT_SEPARATOR}${caption}`;
-  if (fullCaption.length > TELEGRAM_CAPTION_LIMIT) {
+  // Лимит Telegram считает по видимым символам, теги разметки в него не входят
+  const fullCaptionLength = htmlVisibleLength(fullCaption);
+  if (fullCaptionLength > TELEGRAM_CAPTION_LIMIT) {
     throw createHttpError(
       400,
-      `Объявление с подписью поста не влезает в ${TELEGRAM_CAPTION_LIMIT} символов: ${fullCaption.length}`,
+      `Объявление с подписью поста не влезает в ${TELEGRAM_CAPTION_LIMIT} символов: ${fullCaptionLength}`,
     );
   }
 
@@ -149,7 +158,7 @@ export const announceKittenPost = async (
       messageId,
       undefined,
       fullCaption,
-      { parse_mode: "Markdown" },
+      { parse_mode: "HTML" },
     );
   } catch (error) {
     if (!isNotModifiedError(error)) throw error;
@@ -163,14 +172,16 @@ export const announceKittenPost = async (
         post.announcementMessageId,
         undefined,
         text,
-        { parse_mode: "Markdown" },
+        // Превью отключаем: ссылка на Instagram иначе тянет под пост карточку профиля
+        { parse_mode: "HTML", link_preview_options: { is_disabled: true } },
       );
     } catch (error) {
       if (!isNotModifiedError(error)) throw error;
     }
   } else {
     const sent = await bot.telegram.sendMessage(chatId, text, {
-      parse_mode: "Markdown",
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
       reply_parameters: { message_id: messageId },
     });
 

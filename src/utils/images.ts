@@ -77,7 +77,12 @@ export const uploadImages = async (
 
   const results = await Promise.allSettled(
     files.map((file) =>
-      uploadToCloudinary(file.path, folder, path.parse(file.filename).name),
+      uploadToCloudinary(
+        file.path,
+        folder,
+        path.parse(file.filename).name,
+        file.originalname,
+      ),
     ),
   );
 
@@ -92,6 +97,14 @@ export const uploadImages = async (
     const failure = results[failedIndex] as PromiseRejectedResult;
     console.error("Cloudinary upload failed:", failure.reason);
     await deleteMultipleFromCloudinary(uploadedUrls);
+    // Непригодный файл — это ошибка клиента (400 из compressToWebp),
+    // её отдаём как есть, а не прячем за 502 "шлюз виноват"
+    if (
+      createHttpError.isHttpError(failure.reason) &&
+      failure.reason.status < 500
+    ) {
+      throw failure.reason;
+    }
     throw createHttpError(
       502,
       `Failed to upload photo: ${files[failedIndex].originalname}`,

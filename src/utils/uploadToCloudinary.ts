@@ -1,5 +1,6 @@
 import cloudinary from "cloudinary";
 import { env } from "./env";
+import { compressToWebp } from "./compressImage";
 
 cloudinary.v2.config({
   secure: true,
@@ -8,14 +9,21 @@ cloudinary.v2.config({
   api_secret: env.API_SECRET_CLOUD,
 });
 
+/**
+ * Сжимает файл в WebP и отдаёт его в Cloudinary потоком.
+ * Грузим буфер, а не путь: в хранилище должен лежать уже сжатый файл,
+ * иначе квота и исходящий трафик уходят на исходники по 5-10 МБ.
+ */
 export const uploadToCloudinary = async (
   filePath: string,
   folder: string,
   publicId?: string,
+  originalName?: string,
 ): Promise<string> => {
+  const buffer = await compressToWebp(filePath, originalName);
+
   return new Promise((resolve, reject) => {
-    cloudinary.v2.uploader.upload(
-      filePath,
+    const stream = cloudinary.v2.uploader.upload_stream(
       {
         folder: folder,
         public_id: publicId,
@@ -26,6 +34,8 @@ export const uploadToCloudinary = async (
         resolve(result.secure_url);
       },
     );
+
+    stream.end(buffer);
   });
 };
 
@@ -80,6 +90,19 @@ export const extractPublicIdFromUrl = (fullUrl: string): string => {
     console.error("Failed to extract public_id from URL:", fullUrl, error);
     return "";
   }
+};
+
+/**
+ * Переводит URL фото в JPEG.
+ * Нужен для Telegram: по URL он надёжно принимает только JPEG/PNG, а исходник
+ * в Cloudinary теперь WebP. Готовый f_auto именно ЗАМЕНЯЕТСЯ, а не дополняется:
+ * вставленный раньше по цепочке f_jpg был бы им же и переопределён.
+ */
+export const toJpegUrl = (fullUrl: string): string => {
+  if (fullUrl.includes("/f_auto/")) {
+    return fullUrl.replace("/f_auto/", "/f_jpg/");
+  }
+  return fullUrl.replace("/upload/", "/upload/f_jpg/");
 };
 
 /**
