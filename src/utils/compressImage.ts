@@ -2,10 +2,10 @@ import sharp from "sharp";
 import createHttpError from "http-errors";
 
 // Длинная сторона итогового фото и качество WebP.
-// 1920px хватает для полноэкранного просмотра, q80 — порог, ниже которого
-// на фото шерсти появляются заметные артефакты.
-export const MAX_DIMENSION = 1920;
-export const WEBP_QUALITY = 80;
+// 2560px покрывает полноэкранный просмотр на retina-экранах, q92 убирает
+// размывание шерсти и усов, которое давал q80 на мелких деталях.
+export const MAX_DIMENSION = 2560;
+export const WEBP_QUALITY = 92;
 
 // Инстанс App Engine F1 — 256 МБ и одно ядро (app.yaml), а за один запрос
 // приходит до MAX_IMAGES фото. Поэтому: libvips не поднимает пул потоков
@@ -63,8 +63,18 @@ export const compressToWebp = async (
         height: MAX_DIMENSION,
         fit: "inside",
         withoutEnlargement: true,
+        // Lanczos3 держит резкость при уменьшении лучше, чем дефолтный lanczos2
+        kernel: "lanczos3",
       })
-      .webp({ quality: WEBP_QUALITY })
+      .webp({
+        quality: WEBP_QUALITY,
+        // Без этого WebP прореживает цветность 4:2:0 и съедает мелкие
+        // цветные детали (глаза, узор на шерсти)
+        smartSubsample: true,
+        // effort 5 вместо дефолтных 4: тот же вес при чуть лучшей картинке,
+        // дальше рост цены по CPU на F1 уже не оправдан
+        effort: 5,
+      })
       .toBuffer();
   } catch (error) {
     // fileFilter проверяет только заголовок mime и расширение, без magic-byte,

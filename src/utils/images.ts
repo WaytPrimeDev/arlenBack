@@ -31,10 +31,20 @@ const withTransformation = (url: string, params: string) =>
 // e_improve — автокоррекция цвета, контраста и яркости (обычная трансформация,
 // 1 tx, без add-on). Кроп идёт до него, чтобы улучшение считалось по итоговому
 // кадру; f_auto/q_auto — оптимизация формата и веса на доставке.
+// q_auto:best вместо q_auto: автовыбор качества сдвинут в сторону картинки,
+// а не веса — иначе поверх локального сжатия ложится второе, более жёсткое.
+// Кропы считаются на удвоенные размеры (200->400, 400->800): на retina-экранах
+// превью рисуется в 2 CSS-пикселя и прежние размеры выглядели мыльными.
 const toStoredImage = (url: string): StoredImage => ({
-  full: withTransformation(url, "e_improve/f_auto/q_auto"),
-  thumbnail: withTransformation(url, "c_fill,w_200,h_200/e_improve/f_auto/q_auto"),
-  mobile: withTransformation(url, "c_fill,w_400,h_400/e_improve/f_auto/q_auto"),
+  full: withTransformation(url, "e_improve/f_auto/q_auto:best"),
+  thumbnail: withTransformation(
+    url,
+    "c_fill,w_400,h_400/e_improve/f_auto/q_auto:good",
+  ),
+  mobile: withTransformation(
+    url,
+    "c_fill,w_800,h_800/e_improve/f_auto/q_auto:good",
+  ),
   isMain: false, // главное фото назначает syncImages
 });
 
