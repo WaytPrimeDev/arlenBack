@@ -6,12 +6,12 @@ const envSchema = z.object({
   MONGODB_STRING: z.string(),
   SALT_ROUNDS: z.string(),
   JWT_SECRET: z.string(),
-  MY_TEST_TG_BOT: z.string(),
+  TG_BOT_TOKEN_TEST: z.string().optional(),
   API_NAME_CLOUD: z.string(),
   API_SECRET_CLOUD: z.string(),
   API_KEY_CLOUD: z.string(),
   TELEGRAM_CHANNEL_ID: z.string(),
-  MY_TEST_TG_BOT_OFFICIAL_CHANNEL_ID: z.string(),
+  TG_BOT_TOKEN_OFFICIAL: z.string(),
 });
 
 export const env = envSchema.parse(process.env);
